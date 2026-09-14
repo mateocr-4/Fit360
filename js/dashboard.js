@@ -172,7 +172,13 @@ const Dashboard = {
     // Gym summary
     if (gymCount > 0) {
       let totalSets = 0;
-      dayData.gym.forEach(e => { totalSets += (e.sets ? e.sets.length : 0); });
+      let totalVolume = 0;
+      dayData.gym.forEach(e => {
+        (e.sets || []).forEach(s => {
+          totalSets++;
+          totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+        });
+      });
       html += `
         <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px;">
           <div class="flex-between">
@@ -180,7 +186,7 @@ const Dashboard = {
               <span style="font-size: 1.3rem;">🏋️‍♂️</span>
               <div>
                 <h4 style="font-size: 0.9rem;">Fuerza & Gimnasio</h4>
-                <p style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600;">${gymCount} ejercicios · ${totalSets} series completadas</p>
+                <p style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 700;">${totalVolume.toLocaleString('es-ES')} kg movidos · ${gymCount} ejercicios · ${totalSets} series</p>
               </div>
             </div>
             <button class="pill pill-cyan" onclick="App.navigateTo('gym')">Ver Sesión</button>

@@ -3,10 +3,19 @@
  */
 const Gym = {
   currentCategoryFilter: 'all',
+  currentRoutineFilter: 'all',
+  activeOrganizerTab: 'routines',
   restTimerInterval: null,
   restTimerSeconds: 60,
   restTimerTotal: 60,
   isTimerRunning: false,
+  routineBuilderState: {
+    id: null,
+    name: '',
+    icon: '🔥',
+    category: 'Fuerza',
+    exercises: []
+  },
 
   init() {
     this.renderMuscleCategoryChips();
@@ -44,6 +53,178 @@ const Gym = {
     container.innerHTML = html;
   },
 
+  calculateSessionMetrics(exercises, activeDate) {
+    let totalVolume = 0;
+    let completedVolume = 0;
+    let totalSets = 0;
+    let completedSets = 0;
+    let totalReps = 0;
+
+    (exercises || []).forEach(ex => {
+      (ex.sets || []).forEach(s => {
+        totalSets++;
+        const w = Number(s.weight) || 0;
+        const r = Number(s.reps) || 0;
+        const setVol = w * r;
+        totalVolume += setVol;
+        totalReps += r;
+        if (s.completed) {
+          completedSets++;
+          completedVolume += setVol;
+        }
+      });
+    });
+
+    const tons = (totalVolume / 1000).toFixed(2);
+    const avgIntensity = totalReps > 0 ? (totalVolume / totalReps).toFixed(1) : 0;
+    const completionPct = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+
+    // Nivel de esfuerzo según volumen acumulado en kg
+    let effortTier = { label: 'Iniciación', badge: '🌱 Inicio / Calentamiento', color: 'var(--text-muted)' };
+    if (totalVolume >= 20000) {
+      effortTier = { label: 'Sobrecarga Titán', badge: '🚀 Nivel Titán', color: '#ff2d55' };
+    } else if (totalVolume >= 12000) {
+      effortTier = { label: 'Nivel Élite', badge: '🏆 Esfuerzo Élite', color: 'var(--accent-lime)' };
+    } else if (totalVolume >= 6000) {
+      effortTier = { label: 'Alta Intensidad', badge: '🔥 Alta Intensidad', color: 'var(--accent-orange)' };
+    } else if (totalVolume >= 2000) {
+      effortTier = { label: 'Moderada', badge: '⚡ Sesión Activa', color: 'var(--accent-cyan)' };
+    }
+
+    // Comparación con sesión de pesas anterior
+    const prevSession = Storage.getPreviousGymSessionVolume(activeDate);
+    let comparison = null;
+    if (prevSession && prevSession.volume > 0) {
+      const diffKg = totalVolume - prevSession.volume;
+      const diffPct = Math.round((diffKg / prevSession.volume) * 100);
+      const isPositive = diffKg >= 0;
+      const formattedDate = new Date(prevSession.date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      comparison = {
+        diffKg,
+        diffPct,
+        isPositive,
+        prevDateFormatted: formattedDate,
+        prevVolume: prevSession.volume,
+        text: isPositive 
+          ? `+${diffKg.toLocaleString('es-ES')} kg (+${diffPct}%) vs. última sesión (${formattedDate})`
+          : `${diffKg.toLocaleString('es-ES')} kg (${diffPct}%) vs. última sesión (${formattedDate})`
+      };
+    }
+
+    return {
+      totalVolume,
+      completedVolume,
+      totalSets,
+      completedSets,
+      totalReps,
+      tons,
+      avgIntensity,
+      completionPct,
+      effortTier,
+      comparison,
+      exerciseCount: (exercises || []).length
+    };
+  },
+
+  renderVolumeHeroCard(metrics) {
+    const container = document.getElementById('gymVolumeHeroContainer');
+    if (!container) return;
+
+    if (!metrics || metrics.exerciseCount === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="card gym-volume-hero-card">
+        <div class="flex-between" style="align-items: flex-start; margin-bottom: 6px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                Kilos Movidos en la Sesión
+              </span>
+              <span class="gym-effort-badge" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: ${metrics.effortTier.color};">
+                ${metrics.effortTier.badge}
+              </span>
+            </div>
+            <div class="gym-hero-tonnage">
+              <span class="gym-tonnage-val">${metrics.totalVolume.toLocaleString('es-ES')}</span>
+              <span class="gym-tonnage-unit">kg</span>
+            </div>
+          </div>
+
+          <div class="gym-tons-badge">
+            <span style="font-size: 1.15rem;">🏋️‍♂️</span>
+            <div>
+              <div style="font-size: 0.95rem; font-weight: 800; color: #fff; line-height: 1;">${metrics.tons} Tn</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Toneladas</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de progreso de series completadas -->
+        <div style="margin: 8px 0 10px 0;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; margin-bottom: 4px;">
+            <span style="color: var(--text-muted);">Progreso de series:</span>
+            <strong style="color: ${metrics.completionPct === 100 && metrics.totalSets > 0 ? 'var(--accent-lime)' : '#fff'};">
+              ${metrics.completedSets} de ${metrics.totalSets} completadas (${metrics.completionPct}%)
+            </strong>
+          </div>
+          <div class="gym-progress-track">
+            <div class="gym-progress-fill" style="width: ${metrics.completionPct}%;"></div>
+          </div>
+        </div>
+
+        <!-- 3 KPIs secundarios -->
+        <div class="gym-hero-kpi-grid">
+          <div class="gym-hero-subkpi">
+            <span class="subkpi-label">Reps Totales</span>
+            <span class="subkpi-val">${metrics.totalReps}</span>
+          </div>
+          <div class="gym-hero-subkpi">
+            <span class="subkpi-label">Carga Media</span>
+            <span class="subkpi-val">${metrics.avgIntensity} <small style="font-size: 0.65rem; font-weight: 500;">kg/rep</small></span>
+          </div>
+          <div class="gym-hero-subkpi">
+            <span class="subkpi-label">Ejercicios</span>
+            <span class="subkpi-val">${metrics.exerciseCount}</span>
+          </div>
+        </div>
+
+        <!-- Franja de Sobrecarga Progresiva -->
+        <div class="gym-hero-overload-strip">
+          ${metrics.comparison ? `
+            <span style="color: ${metrics.comparison.isPositive ? 'var(--accent-lime)' : 'var(--accent-orange)'}; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+              <span>${metrics.comparison.isPositive ? '▲' : '▼'}</span>
+              <span>${metrics.comparison.text}</span>
+            </span>
+          ` : `
+            <span style="color: var(--text-muted);">
+              ⭐ Primera sesión registrada para cálculo de sobrecarga progresiva
+            </span>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  updateVolumeHeroOnly(activeDate) {
+    const dayData = Storage.getDayData(activeDate);
+    const exercises = dayData.gym || [];
+    const metrics = this.calculateSessionMetrics(exercises, activeDate);
+    this.renderVolumeHeroCard(metrics);
+
+    // Actualizar badges
+    const countBadge = document.getElementById('gymTotalExercises');
+    if (countBadge) countBadge.innerText = `${metrics.exerciseCount} Ejercicios`;
+
+    const setsBadge = document.getElementById('gymTotalSets');
+    if (setsBadge) setsBadge.innerText = `${metrics.completedSets}/${metrics.totalSets} Series`;
+
+    const volumeBadge = document.getElementById('gymTotalVolume');
+    if (volumeBadge) volumeBadge.innerText = `${metrics.totalVolume.toLocaleString('es-ES')} kg`;
+  },
+
   render() {
     const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
     const dayData = Storage.getDayData(activeDate);
@@ -52,25 +233,18 @@ const Gym = {
     const container = document.getElementById('gymExercisesList');
     if (!container) return;
 
-    const countBadge = document.getElementById('gymTotalExercises');
-    if (countBadge) countBadge.innerText = `${exercises.length} Ejercicios`;
+    // Calcular métricas de volumen y esfuerzo de la sesión
+    const metrics = this.calculateSessionMetrics(exercises, activeDate);
+    this.renderVolumeHeroCard(metrics);
 
-    let totalSets = 0;
-    let totalVolume = 0;
-    exercises.forEach(e => {
-      (e.sets || []).forEach(s => {
-        if (s.completed) {
-          totalSets++;
-          totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
-        }
-      });
-    });
+    const countBadge = document.getElementById('gymTotalExercises');
+    if (countBadge) countBadge.innerText = `${metrics.exerciseCount} Ejercicios`;
 
     const setsBadge = document.getElementById('gymTotalSets');
-    if (setsBadge) setsBadge.innerText = `${totalSets} Series`;
+    if (setsBadge) setsBadge.innerText = `${metrics.completedSets}/${metrics.totalSets} Series`;
 
     const volumeBadge = document.getElementById('gymTotalVolume');
-    if (volumeBadge) volumeBadge.innerText = `${totalVolume.toLocaleString()} kg`;
+    if (volumeBadge) volumeBadge.innerText = `${metrics.totalVolume.toLocaleString('es-ES')} kg`;
 
     if (exercises.length === 0) {
       container.innerHTML = `
@@ -78,14 +252,17 @@ const Gym = {
           <div style="font-size: 2.8rem; margin-bottom: 12px;">🏋️‍♂️</div>
           <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Sin ejercicios registrados hoy</h3>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px;">
-            Añade tus ejercicios de pesas, personaliza las columnas/KPIs y registra tus series.
+            Añade tus ejercicios de pesas, organiza tu rutina o carga una plantilla para registrar tus series y kilos movidos.
           </p>
           <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="Gym.openRoutineOrganizerModal()">
+              📋 Organizar Rutina
+            </button>
             <button class="btn btn-primary btn-sm" onclick="Gym.openAddExerciseModal()">
               + Añadir Ejercicio
             </button>
             <button class="btn btn-energy btn-sm" onclick="Gym.openCustomExerciseCreatorModal()">
-              ⚡ Crear Ejercicio con KPIs
+              ⚡ Crear con KPIs
             </button>
           </div>
         </div>
@@ -94,7 +271,7 @@ const Gym = {
     }
 
     let html = '';
-    exercises.forEach((ex) => {
+    exercises.forEach((ex, exIdx) => {
       // Columnas configuradas para este ejercicio
       const columns = (ex.columns && ex.columns.length > 0) ? ex.columns : [
         { id: 'weight', label: 'kg', placeholder: 'kg', type: 'number', step: '0.5' },
@@ -117,6 +294,8 @@ const Gym = {
                 style="width: 100%; margin-top: 6px; font-size: 0.76rem; background: transparent; border: none; border-bottom: 1px dashed rgba(255,255,255,0.15); border-radius: 0; padding: 2px 0; color: var(--text-secondary);">
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
+              <button class="gym-move-btn" onclick="Gym.moveExercise('${ex.id}', 'up')" title="Subir orden" ${exIdx === 0 ? 'disabled' : ''}>▲</button>
+              <button class="gym-move-btn" onclick="Gym.moveExercise('${ex.id}', 'down')" title="Bajar orden" ${exIdx === exercises.length - 1 ? 'disabled' : ''}>▼</button>
               <button onclick="Gym.openEditExerciseColumnsModal('${ex.id}')" style="color: var(--accent-cyan); padding: 4px;" title="Personalizar columnas/KPIs">
                 <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
               </button>
@@ -143,7 +322,8 @@ const Gym = {
                   <input type="${c.type || 'number'}" step="${c.step || 'any'}" class="set-input" 
                     value="${s[c.id] !== undefined ? s[c.id] : ''}" 
                     placeholder="${c.placeholder || c.label}"
-                    onchange="Gym.updateSetField('${ex.id}', ${sIdx}, '${c.id}', this.value)">
+                    oninput="Gym.updateSetField('${ex.id}', ${sIdx}, '${c.id}', this.value, true)"
+                    onchange="Gym.updateSetField('${ex.id}', ${sIdx}, '${c.id}', this.value, false)">
                 `).join('')}
                 <button class="set-check ${s.completed ? 'checked' : ''}" 
                   onclick="Gym.toggleSetCompleted('${ex.id}', ${sIdx})" title="Marcar completada">
@@ -170,6 +350,21 @@ const Gym = {
     });
 
     container.innerHTML = html;
+  },
+
+  moveExercise(exerciseId, direction) {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const exercises = dayData.gym || [];
+    const idx = exercises.findIndex(e => e.id === exerciseId);
+    if (idx === -1) return;
+
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= exercises.length) return;
+
+    Storage.reorderGymExercises(activeDate, idx, targetIdx);
+    this.render();
+    if (window.Dashboard) Dashboard.render();
   },
 
   openAddExerciseModal() {
@@ -300,7 +495,7 @@ const Gym = {
     this.updateSetField(exerciseId, setIdx, field, value);
   },
 
-  updateSetField(exerciseId, setIdx, field, value) {
+  updateSetField(exerciseId, setIdx, field, value, isTyping = false) {
     const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
     const dayData = Storage.getDayData(activeDate);
     const ex = (dayData.gym || []).find(e => e.id === exerciseId);
@@ -309,6 +504,13 @@ const Gym = {
     const numVal = Number(value);
     ex.sets[setIdx][field] = (!isNaN(numVal) && value.trim() !== '') ? numVal : value;
     Storage.updateGymExercise(activeDate, exerciseId, { sets: ex.sets });
+
+    // Actualizar inmediatamente el recuento superior de kilos movidos y badges
+    this.updateVolumeHeroOnly(activeDate);
+
+    if (!isTyping && window.Dashboard) {
+      Dashboard.render();
+    }
   },
 
   // --- GESTIÓN DE GRUPOS MUSCULARES ---
@@ -514,66 +716,510 @@ const Gym = {
     Storage.updateGymExercise(activeDate, exerciseId, { notes });
   },
 
+  // --- ORGANIZADOR Y GESTOR DE RUTINAS ---
   openRoutinesModal() {
-    const container = document.getElementById('routinesModalList');
+    this.openRoutineOrganizerModal();
+  },
+
+  openRoutineOrganizerModal(tab = 'routines') {
+    this.switchOrganizerTab(tab);
+    App.openModal('routineOrganizerModal');
+  },
+
+  switchOrganizerTab(tab) {
+    this.activeOrganizerTab = tab;
+    const btnRoutines = document.getElementById('tabBtnOrganizerRoutines');
+    const btnToday = document.getElementById('tabBtnOrganizerToday');
+    const contentRoutines = document.getElementById('organizerTabRoutinesContent');
+    const contentToday = document.getElementById('organizerTabTodayContent');
+
+    if (btnRoutines) btnRoutines.classList.toggle('active', tab === 'routines');
+    if (btnToday) btnToday.classList.toggle('active', tab === 'today');
+
+    if (contentRoutines) contentRoutines.style.display = tab === 'routines' ? 'block' : 'none';
+    if (contentToday) contentToday.style.display = tab === 'today' ? 'block' : 'none';
+
+    if (tab === 'routines') {
+      this.renderOrganizerRoutinesList();
+    } else {
+      this.renderOrganizerTodayList();
+    }
+  },
+
+  filterRoutines(filter) {
+    this.currentRoutineFilter = filter;
+    ['all', 'custom', 'standard'].forEach(f => {
+      const id = f === 'all' ? 'filterRoutineAll' : (f === 'custom' ? 'filterRoutineCustom' : 'filterRoutineStd');
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', this.currentRoutineFilter === f);
+    });
+    this.renderOrganizerRoutinesList();
+  },
+
+  renderOrganizerRoutinesList() {
+    const container = document.getElementById('routinesOrganizerList');
     if (!container) return;
 
-    container.innerHTML = WORKOUT_ROUTINES_TEMPLATES.map(r => `
-      <div class="card" style="margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s;" 
-        onclick="Gym.loadRoutineTemplate('${r.id}')"
-        onmouseover="this.style.borderColor='var(--accent-cyan)'" 
-        onmouseout="this.style.borderColor='var(--glass-border)'">
-        <div class="flex-between">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.6rem;">${r.icon}</span>
-            <div>
-              <h4 style="font-size: 0.95rem;">${r.name}</h4>
-              <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
-                ${r.exercises.length} ejercicios planificados
-              </p>
+    const allRoutines = Storage.getAllRoutines();
+    let filtered = allRoutines;
+
+    if (this.currentRoutineFilter === 'custom') {
+      filtered = allRoutines.filter(r => r.isCustom);
+    } else if (this.currentRoutineFilter === 'standard') {
+      filtered = allRoutines.filter(r => !r.isCustom);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 30px 15px; background: rgba(255,255,255,0.02); border-radius: var(--radius-md);">
+          <div style="font-size: 2rem; margin-bottom: 8px;">📋</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">No hay rutinas en este filtro.</p>
+          <button class="btn btn-primary btn-sm" onclick="Gym.openRoutineEditorModal()" style="margin-top: 10px;">
+            + Crear mi Primera Rutina
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(r => {
+      const exList = r.exercises || [];
+      const totalEstimatedSets = exList.reduce((acc, e) => acc + (e.sets ? e.sets.length : 3), 0);
+
+      return `
+        <div class="routine-card-item">
+          <div class="flex-between" style="align-items: flex-start; gap: 8px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <span style="font-size: 1.65rem;">${r.icon || '🏋️‍♂️'}</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <strong style="font-size: 0.92rem; color: #fff;">${r.name}</strong>
+                  <span class="pill ${r.isCustom ? 'pill-lime' : 'pill-cyan'}" style="font-size: 0.62rem;">
+                    ${r.isCustom ? 'Personalizada' : 'Estándar'}
+                  </span>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">
+                  ${exList.length} ejercicios • ~${totalEstimatedSets} series • ${r.category || 'Fuerza'}
+                </span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 4px; align-items: center;">
+              ${r.isCustom ? `
+                <button class="gym-move-btn" onclick="Gym.openRoutineEditorModal('${r.id}')" title="Editar rutina" style="color: var(--accent-cyan);">
+                  ✏️
+                </button>
+                <button class="gym-move-btn" onclick="Gym.deleteCustomRoutinePrompt('${r.id}')" title="Eliminar rutina" style="color: var(--accent-magenta);">
+                  🗑️
+                </button>
+              ` : ''}
+              <button class="btn btn-primary btn-sm" onclick="Gym.promptApplyRoutine('${r.id}')" style="font-size: 0.74rem; padding: 5px 10px;">
+                Cargar ›
+              </button>
             </div>
           </div>
-          <button class="pill pill-cyan">Cargar ›</button>
+
+          <!-- Preview chips de ejercicios -->
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
+            ${exList.map(e => `
+              <span class="routine-exercise-chip">
+                ${e.name} ${e.sets ? `(${e.sets.length}s)` : ''}
+              </span>
+            `).join('')}
+          </div>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
-          ${r.exercises.map(e => `<span style="font-size: 0.7rem; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-secondary);">${e.name}</span>`).join('')}
+      `;
+    }).join('');
+  },
+
+  renderOrganizerTodayList() {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const exercises = dayData.gym || [];
+
+    const badge = document.getElementById('organizerTodayCount');
+    if (badge) badge.innerText = exercises.length;
+
+    const container = document.getElementById('organizerTodayExercisesList');
+    if (!container) return;
+
+    if (exercises.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 30px 15px; background: rgba(255,255,255,0.02); border-radius: var(--radius-md);">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🏋️‍♂️</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">No hay ejercicios en la sesión de hoy.</p>
+          <button class="btn btn-primary btn-sm" onclick="App.closeModal('routineOrganizerModal'); Gym.openAddExerciseModal();" style="margin-top: 10px;">
+            + Añadir Ejercicios a Hoy
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = exercises.map((ex, idx) => `
+      <div class="card" style="padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+          <span style="font-weight: 800; font-size: 0.82rem; color: var(--accent-cyan); width: 20px;">#${idx + 1}</span>
+          <div style="min-width: 0;">
+            <div style="font-size: 0.88rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${ex.name}
+            </div>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">
+              ${ex.category || 'Fuerza'} • ${(ex.sets || []).length} series
+            </span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button class="gym-move-btn" onclick="Gym.moveExercise('${ex.id}', 'up'); Gym.renderOrganizerTodayList();" title="Subir" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="gym-move-btn" onclick="Gym.moveExercise('${ex.id}', 'down'); Gym.renderOrganizerTodayList();" title="Bajar" ${idx === exercises.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="gym-move-btn" onclick="Gym.deleteExercise('${ex.id}'); Gym.renderOrganizerTodayList();" title="Eliminar" style="color: var(--accent-magenta);">✕</button>
         </div>
       </div>
     `).join('');
-
-    App.openModal('routinesModal');
   },
 
-  loadRoutineTemplate(routineId) {
-    const routine = WORKOUT_ROUTINES_TEMPLATES.find(r => r.id === routineId);
+  promptApplyRoutine(routineId) {
+    const routine = Storage.getAllRoutines().find(r => r.id === routineId);
+    if (!routine) return;
+
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const existingCount = (dayData.gym || []).length;
+
+    if (existingCount > 0) {
+      const choice = confirm(`La sesión de hoy ya tiene ${existingCount} ejercicios.\n\n¿Deseas REEMPLAZAR la sesión actual con "${routine.name}"?\n(Pulsa Aceptar para Reemplazar, o Cancelar para Añadir al final)`);
+      this.applyRoutineToSession(routineId, choice ? 'replace' : 'append');
+    } else {
+      this.applyRoutineToSession(routineId, 'replace');
+    }
+  },
+
+  applyRoutineToSession(routineId, mode = 'replace') {
+    const routine = Storage.getAllRoutines().find(r => r.id === routineId);
     if (!routine) return;
 
     const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
     const dayData = Storage.getDayData(activeDate);
 
-    if (!dayData.gym) dayData.gym = [];
+    if (mode === 'replace') {
+      dayData.gym = [];
+    } else if (!dayData.gym) {
+      dayData.gym = [];
+    }
 
-    // Añadir ejercicios de la plantilla
-    routine.exercises.forEach((ex, idx) => {
+    (routine.exercises || []).forEach((ex, idx) => {
+      const sets = (ex.sets && ex.sets.length > 0) ? ex.sets.map((s, sIdx) => ({
+        setNum: sIdx + 1,
+        weight: Number(s.weight) || 20,
+        reps: Number(s.reps) || 10,
+        completed: false
+      })) : [
+        { setNum: 1, weight: 20, reps: 10, completed: false },
+        { setNum: 2, weight: 20, reps: 10, completed: false },
+        { setNum: 3, weight: 20, reps: 10, completed: false }
+      ];
+
       dayData.gym.push({
         id: 'gym_' + (Date.now() + idx),
         name: ex.name,
-        category: ex.category,
+        category: ex.category || 'Fuerza',
         notes: `Rutina: ${routine.name}`,
-        sets: ex.sets.map((s, sIdx) => ({
-          setNum: sIdx + 1,
-          weight: s.weight,
-          reps: s.reps,
-          completed: false
-        }))
+        sets
       });
     });
 
     Storage.saveDayData(activeDate, dayData);
-    App.closeModal('routinesModal');
-    App.showToast(`Rutina "${routine.name}" cargada con éxito`, 'success');
+    App.closeModal('routineOrganizerModal');
+    App.showToast(`Rutina "${routine.name}" cargada (${routine.exercises.length} ejercicios)`, 'success');
     this.render();
     if (window.Dashboard) Dashboard.render();
+  },
+
+  deleteCustomRoutinePrompt(routineId) {
+    if (confirm('¿Seguro que deseas eliminar esta rutina personalizada?')) {
+      Storage.deleteCustomRoutine(routineId);
+      App.showToast('Rutina eliminada', 'info');
+      this.renderOrganizerRoutinesList();
+    }
+  },
+
+  saveCurrentSessionAsRoutine() {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const exercises = dayData.gym || [];
+
+    if (exercises.length === 0) {
+      App.showToast('La sesión de hoy no tiene ejercicios para guardar', 'error');
+      return;
+    }
+
+    // Inicializar builder con los ejercicios actuales
+    this.openRoutineEditorModal(null, {
+      name: 'Rutina ' + new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' }),
+      icon: '💪',
+      category: exercises[0]?.category || 'Fuerza',
+      exercises: exercises.map(e => ({
+        name: e.name,
+        category: e.category || 'Fuerza',
+        sets: (e.sets || []).map(s => ({
+          weight: Number(s.weight) || 20,
+          reps: Number(s.reps) || 10
+        }))
+      }))
+    });
+  },
+
+  // --- CREADOR / EDITOR DE RUTINAS PERSONALIZADAS ---
+  openRoutineEditorModal(routineId = null, prefillData = null) {
+    this.populateRoutineBuilderSelect();
+
+    if (prefillData) {
+      this.routineBuilderState = {
+        id: null,
+        name: prefillData.name || '',
+        icon: prefillData.icon || '🔥',
+        category: prefillData.category || 'Fuerza',
+        exercises: prefillData.exercises ? JSON.parse(JSON.stringify(prefillData.exercises)) : []
+      };
+      const title = document.getElementById('routineEditorTitle');
+      if (title) title.innerText = 'Guardar Sesión como Rutina';
+    } else if (routineId) {
+      const routine = Storage.getCustomRoutines().find(r => r.id === routineId);
+      if (routine) {
+        this.routineBuilderState = {
+          id: routine.id,
+          name: routine.name,
+          icon: routine.icon || '🔥',
+          category: routine.category || 'Fuerza',
+          exercises: routine.exercises ? JSON.parse(JSON.stringify(routine.exercises)) : []
+        };
+        const title = document.getElementById('routineEditorTitle');
+        if (title) title.innerText = 'Editar Rutina';
+      }
+    } else {
+      this.routineBuilderState = {
+        id: null,
+        name: '',
+        icon: '🔥',
+        category: 'Fuerza',
+        exercises: []
+      };
+      const title = document.getElementById('routineEditorTitle');
+      if (title) title.innerText = 'Crear Nueva Rutina';
+    }
+
+    const idInput = document.getElementById('routineEditorId');
+    const iconInput = document.getElementById('routineEditorIconInput');
+    const nameInput = document.getElementById('routineEditorNameInput');
+    const catSelect = document.getElementById('routineEditorCategorySelect');
+    const customInput = document.getElementById('routineBuilderCustomInput');
+
+    if (idInput) idInput.value = this.routineBuilderState.id || '';
+    if (iconInput) iconInput.value = this.routineBuilderState.icon;
+    if (nameInput) nameInput.value = this.routineBuilderState.name;
+    if (catSelect) catSelect.value = this.routineBuilderState.category;
+    if (customInput) customInput.value = '';
+
+    this.renderRoutineEditorList();
+    App.openModal('routineEditorModal');
+  },
+
+  populateRoutineBuilderSelect() {
+    const select = document.getElementById('routineBuilderExSelect');
+    if (!select) return;
+
+    select.innerHTML = `
+      <option value="">-- Elige ejercicio de la base de datos --</option>
+      ${EXERCISES_DATABASE.map(e => `
+        <option value="${e.id}">${e.name} (${e.category})</option>
+      `).join('')}
+    `;
+  },
+
+  renderRoutineEditorList() {
+    const container = document.getElementById('routineEditorExercisesList');
+    const badge = document.getElementById('routineEditorExCount');
+    if (!container) return;
+
+    const list = this.routineBuilderState.exercises || [];
+    if (badge) badge.innerText = list.length;
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.8rem; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm);">
+          Añade ejercicios abajo para conformar tu rutina.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map((ex, idx) => {
+      const setsCount = ex.sets ? ex.sets.length : 3;
+      const defaultW = (ex.sets && ex.sets[0]) ? ex.sets[0].weight : 20;
+      const defaultR = (ex.sets && ex.sets[0]) ? ex.sets[0].reps : 10;
+
+      return `
+        <div class="routine-builder-row">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 800; font-size: 0.78rem; color: var(--accent-cyan);">#${idx + 1}</span>
+              <strong style="font-size: 0.85rem; color: #fff;">${ex.name}</strong>
+              <span class="pill pill-cyan" style="font-size: 0.6rem; padding: 1px 6px;">${ex.category || 'Fuerza'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <button class="gym-move-btn" onclick="Gym.moveRoutineBuilderExercise(${idx}, 'up')" ${idx === 0 ? 'disabled' : ''}>▲</button>
+              <button class="gym-move-btn" onclick="Gym.moveRoutineBuilderExercise(${idx}, 'down')" ${idx === list.length - 1 ? 'disabled' : ''}>▼</button>
+              <button class="gym-move-btn" onclick="Gym.removeRoutineBuilderExercise(${idx})" style="color: var(--accent-magenta);">✕</button>
+            </div>
+          </div>
+
+          <!-- Mini config: Series, Peso Inicial, Reps Objetivo -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 0.72rem;">
+            <div>
+              <label style="color: var(--text-muted); display: block; font-size: 0.65rem;">Series</label>
+              <input type="number" min="1" max="10" class="set-input" value="${setsCount}" 
+                onchange="Gym.updateRoutineBuilderExerciseSets(${idx}, this.value)" style="padding: 4px; font-size: 0.78rem;">
+            </div>
+            <div>
+              <label style="color: var(--text-muted); display: block; font-size: 0.65rem;">Peso obj. (kg)</label>
+              <input type="number" step="0.5" class="set-input" value="${defaultW}" 
+                onchange="Gym.updateRoutineBuilderExerciseField(${idx}, 'weight', this.value)" style="padding: 4px; font-size: 0.78rem;">
+            </div>
+            <div>
+              <label style="color: var(--text-muted); display: block; font-size: 0.65rem;">Reps obj.</label>
+              <input type="number" class="set-input" value="${defaultR}" 
+                onchange="Gym.updateRoutineBuilderExerciseField(${idx}, 'reps', this.value)" style="padding: 4px; font-size: 0.78rem;">
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  addExerciseFromSelectToRoutineBuilder() {
+    const select = document.getElementById('routineBuilderExSelect');
+    const exId = select.value;
+    if (!exId) return;
+
+    const dbEx = EXERCISES_DATABASE.find(e => e.id === exId);
+    if (!dbEx) return;
+
+    const defaultSets = [
+      { weight: dbEx.defaultWeight || 20, reps: dbEx.defaultReps || 10 },
+      { weight: dbEx.defaultWeight || 20, reps: dbEx.defaultReps || 10 },
+      { weight: dbEx.defaultWeight || 20, reps: dbEx.defaultReps || 10 }
+    ];
+
+    this.routineBuilderState.exercises.push({
+      name: dbEx.name,
+      category: dbEx.category,
+      sets: defaultSets
+    });
+
+    select.value = '';
+    this.renderRoutineEditorList();
+  },
+
+  addCustomExerciseToRoutineBuilder() {
+    const input = document.getElementById('routineBuilderCustomInput');
+    const name = input.value.trim();
+    if (!name) {
+      App.showToast('Escribe el nombre del ejercicio', 'error');
+      return;
+    }
+
+    const categorySelect = document.getElementById('routineEditorCategorySelect');
+    const category = categorySelect ? categorySelect.value : 'Fuerza';
+
+    this.routineBuilderState.exercises.push({
+      name,
+      category,
+      sets: [
+        { weight: 20, reps: 10 },
+        { weight: 20, reps: 10 },
+        { weight: 20, reps: 10 }
+      ]
+    });
+
+    input.value = '';
+    this.renderRoutineEditorList();
+  },
+
+  moveRoutineBuilderExercise(index, direction) {
+    const list = this.routineBuilderState.exercises;
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIdx, 0, moved);
+    this.renderRoutineEditorList();
+  },
+
+  removeRoutineBuilderExercise(index) {
+    this.routineBuilderState.exercises.splice(index, 1);
+    this.renderRoutineEditorList();
+  },
+
+  updateRoutineBuilderExerciseSets(index, setsVal) {
+    const numSets = Math.max(1, Math.min(10, Number(setsVal) || 3));
+    const ex = this.routineBuilderState.exercises[index];
+    if (!ex) return;
+
+    const currentSets = ex.sets || [];
+    const baseW = (currentSets[0]?.weight) || 20;
+    const baseR = (currentSets[0]?.reps) || 10;
+
+    const newSets = [];
+    for (let i = 0; i < numSets; i++) {
+      newSets.push({
+        weight: currentSets[i]?.weight !== undefined ? currentSets[i].weight : baseW,
+        reps: currentSets[i]?.reps !== undefined ? currentSets[i].reps : baseR
+      });
+    }
+    ex.sets = newSets;
+    this.renderRoutineEditorList();
+  },
+
+  updateRoutineBuilderExerciseField(index, field, value) {
+    const ex = this.routineBuilderState.exercises[index];
+    if (!ex || !ex.sets) return;
+
+    const numVal = Number(value) || 0;
+    ex.sets.forEach(s => {
+      s[field] = numVal;
+    });
+  },
+
+  saveRoutineFromEditor() {
+    const name = document.getElementById('routineEditorNameInput').value.trim();
+    const icon = document.getElementById('routineEditorIconInput').value.trim() || '🔥';
+    const category = document.getElementById('routineEditorCategorySelect').value;
+
+    if (!name) {
+      App.showToast('Introduce un nombre para la rutina', 'error');
+      return;
+    }
+
+    if (!this.routineBuilderState.exercises || this.routineBuilderState.exercises.length === 0) {
+      App.showToast('Añade al menos un ejercicio a la rutina', 'error');
+      return;
+    }
+
+    const routineToSave = {
+      id: this.routineBuilderState.id || ('routine_' + Date.now()),
+      name,
+      icon,
+      category,
+      exercises: this.routineBuilderState.exercises
+    };
+
+    Storage.saveCustomRoutine(routineToSave);
+    App.closeModal('routineEditorModal');
+    App.showToast(`Rutina "${name}" guardada con éxito`, 'success');
+
+    // Refrescar lista en el organizador
+    this.renderOrganizerRoutinesList();
   },
 
   deleteExercise(exerciseId) {

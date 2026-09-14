@@ -8,7 +8,8 @@ const Storage = {
     FAVORITES: 'fit360_favorites',
     MUSCLE_GROUPS: 'fit360_muscle_groups',
     CUSTOM_EXERCISES: 'fit360_custom_exercises',
-    WEIGHT_LOGS: 'fit360_weight_logs'
+    WEIGHT_LOGS: 'fit360_weight_logs',
+    ROUTINES: 'fit360_custom_routines'
   },
 
   // Grupos musculares por defecto
@@ -376,6 +377,104 @@ const Storage = {
     const day = this.getDayData(dateStr);
     day.gym = (day.gym || []).filter(e => e.id !== exerciseId);
     this.saveDayData(dateStr, day);
+  },
+
+  reorderGymExercises(dateStr, fromIndex, toIndex) {
+    const day = this.getDayData(dateStr);
+    if (!day.gym || fromIndex < 0 || toIndex < 0 || fromIndex >= day.gym.length || toIndex >= day.gym.length) {
+      return;
+    }
+    const [moved] = day.gym.splice(fromIndex, 1);
+    day.gym.splice(toIndex, 0, moved);
+    this.saveDayData(dateStr, day);
+    return day.gym;
+  },
+
+  setGymExercises(dateStr, exercisesList) {
+    const day = this.getDayData(dateStr);
+    day.gym = exercisesList || [];
+    this.saveDayData(dateStr, day);
+    return day.gym;
+  },
+
+  getPreviousGymSessionVolume(currentDateStr) {
+    try {
+      const allData = this.getAllDailyData();
+      const validDates = Object.keys(allData)
+        .filter(d => d < currentDateStr && allData[d]?.gym && allData[d].gym.length > 0)
+        .sort((a, b) => b.localeCompare(a)); // Más reciente primero
+
+      if (validDates.length === 0) return null;
+
+      const prevDate = validDates[0];
+      const prevGym = allData[prevDate].gym || [];
+
+      let volume = 0;
+      let totalSets = 0;
+      let completedSets = 0;
+      let totalReps = 0;
+
+      prevGym.forEach(ex => {
+        (ex.sets || []).forEach(s => {
+          totalSets++;
+          const w = Number(s.weight) || 0;
+          const r = Number(s.reps) || 0;
+          volume += w * r;
+          totalReps += r;
+          if (s.completed) completedSets++;
+        });
+      });
+
+      return {
+        date: prevDate,
+        volume,
+        totalSets,
+        completedSets,
+        totalReps,
+        exerciseCount: prevGym.length
+      };
+    } catch (e) {
+      console.error('Error calculando volumen anterior:', e);
+      return null;
+    }
+  },
+
+  // --- MÉTODOS DE PLANTILLAS Y RUTINAS PERSONALIZADAS ---
+  getCustomRoutines() {
+    try {
+      const data = localStorage.getItem(this.KEYS.ROUTINES);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveCustomRoutine(routine) {
+    const routines = this.getCustomRoutines();
+    routine.id = routine.id || ('routine_' + Date.now());
+    routine.isCustom = true;
+    routine.updatedAt = new Date().toISOString();
+
+    const idx = routines.findIndex(r => r.id === routine.id);
+    if (idx >= 0) {
+      routines[idx] = routine;
+    } else {
+      routines.unshift(routine);
+    }
+
+    localStorage.setItem(this.KEYS.ROUTINES, JSON.stringify(routines));
+    return routine;
+  },
+
+  deleteCustomRoutine(routineId) {
+    const routines = this.getCustomRoutines().filter(r => r.id !== routineId);
+    localStorage.setItem(this.KEYS.ROUTINES, JSON.stringify(routines));
+  },
+
+  getAllRoutines() {
+    const custom = this.getCustomRoutines().map(r => ({ ...r, isCustom: true }));
+    const standard = (window.WORKOUT_ROUTINES_TEMPLATES || []).map(r => ({ ...r, isCustom: false }));
+    return [...custom, ...standard];
   },
 
   // --- MÉTODOS DE CARDIO ---

@@ -948,3 +948,229 @@
   align-items: center;
   gap: 8px;
 }
+
+/* ========================================================
+   GYM VOLUME HERO CARD & TONNAGE RECORDER
+   ======================================================== */
+.gym-volume-hero-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.12) 0%, rgba(18, 23, 39, 0.95) 50%, rgba(0, 242, 254, 0.06) 100%) !important;
+  border: 1px solid rgba(255, 149, 0, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 149, 0, 0.12) !important;
+  overflow: hidden;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+}
+
+.gym-volume-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255, 149, 0, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.gym-hero-tonnage {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.gym-tonnage-val {
+  font-family: var(--font-display);
+  font-size: 2.35rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 45%, var(--accent-orange) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.gym-tonnage-unit {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  text-transform: uppercase;
+}
+
+.gym-tons-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.gym-effort-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gym-progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.gym-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-lime) 100%);
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(0, 245, 155, 0.4);
+}
+
+.gym-hero-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.gym-hero-subkpi {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
+  padding: 7px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gym-hero-subkpi .subkpi-label {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.gym-hero-subkpi .subkpi-val {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.gym-hero-overload-strip {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-top: 10px;
+  font-size: 0.73rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Reorder arrow buttons on exercise cards */
+.gym-move-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.72rem;
+  transition: all 0.2s;
+}
+
+.gym-move-btn:hover:not(:disabled) {
+  background: var(--accent-cyan);
+  color: #000;
+  border-color: var(--accent-cyan);
+}
+
+.gym-move-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Routine Organizer Tabs */
+.routine-nav-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.routine-nav-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.routine-nav-tab.active {
+  background: rgba(0, 242, 254, 0.12);
+  border-color: var(--accent-cyan);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+}
+
+.routine-card-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.routine-card-item:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.routine-exercise-chip {
+  font-size: 0.69rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+}
+
+/* Routine Builder Exercise Row */
+.routine-builder-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}

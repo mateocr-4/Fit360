@@ -546,8 +546,8 @@
             <h2 style="font-size: 1.4rem;">Gimnasio & Pesas</h2>
           </div>
           <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
-            <button class="btn btn-secondary btn-sm" onclick="Gym.openRoutinesModal()" style="font-size: 0.74rem; padding: 6px 8px;">
-              📋 Rutinas
+            <button class="btn btn-secondary btn-sm" onclick="Gym.openRoutineOrganizerModal()" style="font-size: 0.74rem; padding: 6px 8px;">
+              📋 Organizar Rutina
             </button>
             <button class="btn btn-energy btn-sm" onclick="Gym.openCustomExerciseCreatorModal()" style="font-size: 0.74rem; padding: 6px 8px;">
               ⚡ + KPIs
@@ -557,6 +557,9 @@
             </button>
           </div>
         </div>
+
+        <!-- Hero Recuento Superior: Kilos Movidos en la Sesión & Progresión -->
+        <div id="gymVolumeHeroContainer"></div>
 
         <!-- Workout Daily Stats Pills -->
         <div style="display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 4px;">
@@ -1221,6 +1224,12 @@
           <button id="renphoAutoSyncBtn" class="btn btn-primary btn-block" onclick="HealthSync.syncFromAppleHealth()" style="padding: 12px; font-size: 0.88rem;">
             ⚡ Sincronizar ahora con Apple Salud
           </button>
+
+          <div style="margin-top: 10px; padding: 10px; background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.25); border-radius: var(--radius-md); font-size: 0.74rem; color: var(--text-secondary); line-height: 1.4;">
+            <strong style="color: #fb923c; display: block; margin-bottom: 4px;">⚠️ Nota sobre Apple Salud y Sideloadly:</strong>
+            Apple restringe el acceso directo a HealthKit a cuentas de desarrollador oficiales. Con un <b>Apple ID gratuito</b> en Sideloadly, iOS suele bloquear el permiso de HealthKit.<br>
+            👉 <b>Alternativas 100% disponibles</b>: Usa la pestaña <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('manual')">"✍️ Manual"</b> (solo tardas 2 segundos con los botones ±0.1 kg) o <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('history')">"📜 Historial / CSV"</b> para importar todos tus pesajes desde la app Renpho.
+          </div>
         </div>
 
         <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 12px;">
@@ -1453,21 +1462,159 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- MODAL: CARGAR RUTINA PREDEFINIDA GYM           -->
+  <!-- MODAL: ORGANIZADOR DE RUTINAS Y SESIONES GYM   -->
   <!-- ============================================== -->
-  <div class="modal-overlay" id="routinesModal">
-    <div class="modal-sheet">
+  <div class="modal-overlay" id="routineOrganizerModal">
+    <div class="modal-sheet" style="max-height: 90vh;">
       <div class="sheet-handle"></div>
       <div class="modal-header">
         <div>
-          <h3 style="font-size: 1.15rem;">Plantillas de Rutina</h3>
-          <span style="font-size: 0.75rem; color: var(--accent-lime);">Carga tu sesión con un solo toque</span>
+          <h3 style="font-size: 1.15rem;">Organizador de Rutinas</h3>
+          <span style="font-size: 0.75rem; color: var(--accent-cyan);">Planifica, organiza y carga tus entrenamientos</span>
         </div>
-        <button class="icon-btn" onclick="App.closeModal('routinesModal')">✕</button>
+        <button class="icon-btn" onclick="App.closeModal('routineOrganizerModal')">✕</button>
       </div>
 
-      <div id="routinesModalList" style="margin-top: 10px;">
-        <!-- Se rellena dinámicamente con JS -->
+      <!-- Navigation Tabs: Mis Rutinas vs Sesión de Hoy -->
+      <div class="routine-nav-tabs">
+        <button class="routine-nav-tab active" id="tabBtnOrganizerRoutines" onclick="Gym.switchOrganizerTab('routines')">
+          📋 Mis Rutinas
+        </button>
+        <button class="routine-nav-tab" id="tabBtnOrganizerToday" onclick="Gym.switchOrganizerTab('today')">
+          🏋️‍♂️ Sesión de Hoy (<span id="organizerTodayCount">0</span>)
+        </button>
+      </div>
+
+      <!-- TAB 1: Mis Rutinas y Plantillas -->
+      <div id="organizerTabRoutinesContent">
+        <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 6px;">
+            <button class="pill pill-cyan active" id="filterRoutineAll" onclick="Gym.filterRoutines('all')">Todas</button>
+            <button class="pill pill-lime" id="filterRoutineCustom" onclick="Gym.filterRoutines('custom')">Mis Rutinas</button>
+            <button class="pill pill-orange" id="filterRoutineStd" onclick="Gym.filterRoutines('standard')">Estándar</button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="Gym.openRoutineEditorModal()" style="font-size: 0.75rem; padding: 6px 10px;">
+            + Crear Rutina
+          </button>
+        </div>
+
+        <div id="routinesOrganizerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 2px;">
+          <!-- Inyectado por JS -->
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <button class="btn btn-secondary btn-block" onclick="Gym.saveCurrentSessionAsRoutine()">
+            💾 Guardar ejercicios de hoy como Nueva Rutina
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 2: Organizar Sesión de Hoy -->
+      <div id="organizerTabTodayContent" style="display: none;">
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
+          Reordena el orden de los ejercicios para el entrenamiento de hoy usando las flechas ▲ y ▼, o añade nuevos.
+        </p>
+
+        <div id="organizerTodayExercisesList" style="display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 2px;">
+          <!-- Inyectado por JS -->
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="App.closeModal('routineOrganizerModal'); Gym.openAddExerciseModal();">
+            + Añadir Ejercicio
+          </button>
+          <button class="btn btn-energy btn-sm" style="flex: 1;" onclick="Gym.saveCurrentSessionAsRoutine()">
+            💾 Guardar como Rutina
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: CREADOR / EDITOR DE PLANTILLA DE RUTINA  -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="routineEditorModal">
+    <div class="modal-sheet" style="max-height: 92vh;">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem;" id="routineEditorTitle">Crear Nueva Rutina</h3>
+          <span style="font-size: 0.75rem; color: var(--accent-lime);">Organiza tu rutina con ejercicios estándar o nuevos</span>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('routineEditorModal')">✕</button>
+      </div>
+
+      <input type="hidden" id="routineEditorId" value="">
+
+      <!-- Form Inputs: Name, Icon, Category -->
+      <div style="display: grid; grid-template-columns: 60px 1fr; gap: 8px; margin-bottom: 10px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-size: 0.7rem;">Icono</label>
+          <input type="text" id="routineEditorIconInput" class="form-control" value="🔥" style="text-align: center; font-size: 1.25rem; padding: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-size: 0.7rem;">Nombre de la Rutina</label>
+          <input type="text" id="routineEditorNameInput" class="form-control" placeholder="Ej: Empuje Pesado A, Torso Fuerza...">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label" style="font-size: 0.7rem;">Enfoque Principal / Categoría</label>
+        <select id="routineEditorCategorySelect" class="form-control">
+          <option value="Fuerza">Fuerza General</option>
+          <option value="Pecho">Pecho / Empuje</option>
+          <option value="Espalda">Espalda / Tirón</option>
+          <option value="Piernas">Piernas / Tren Inferior</option>
+          <option value="Hombros">Hombros</option>
+          <option value="Brazos">Brazos</option>
+          <option value="Full Body">Full Body</option>
+          <option value="Core">Core / Abdominales</option>
+        </select>
+      </div>
+
+      <!-- Section: Ejercicios en esta Rutina -->
+      <div class="flex-between" style="margin-bottom: 6px;">
+        <span style="font-size: 0.76rem; font-weight: 700; color: #fff; text-transform: uppercase;">
+          Ejercicios en la Rutina (<span id="routineEditorExCount">0</span>)
+        </span>
+        <span style="font-size: 0.7rem; color: var(--text-muted);">Organiza el orden con ▲ ▼</span>
+      </div>
+
+      <div id="routineEditorExercisesList" style="max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; margin-bottom: 12px;">
+        <!-- Lista de ejercicios en la rutina en construcción -->
+      </div>
+
+      <!-- Add exercise to routine panel -->
+      <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: var(--radius-md); padding: 10px; margin-bottom: 14px;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-cyan); display: block; margin-bottom: 6px;">
+          + Añadir Ejercicio a esta Rutina
+        </span>
+
+        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <select id="routineBuilderExSelect" class="form-control" style="flex: 2; font-size: 0.8rem;">
+            <!-- Rellenado con EXERCISES_DATABASE -->
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="Gym.addExerciseFromSelectToRoutineBuilder()" style="white-space: nowrap;">
+            + Añadir
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" id="routineBuilderCustomInput" class="form-control" placeholder="O escribe un ejercicio nuevo..." style="font-size: 0.78rem;">
+          <button class="btn btn-energy btn-sm" onclick="Gym.addCustomExerciseToRoutineBuilder()" style="white-space: nowrap;">
+            + Nuevo
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="App.closeModal('routineEditorModal')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary" style="flex: 2;" onclick="Gym.saveRoutineFromEditor()">
+          💾 Guardar Rutina
+        </button>
       </div>
     </div>
   </div>

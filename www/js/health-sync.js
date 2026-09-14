@@ -40,8 +40,8 @@ const HealthSync = {
     }
   },
 
-  // Abrir modal de báscula Renpho y salud
-  openModal(tab = 'sync') {
+  // Abrir modal de báscula Renpho y salud (por defecto en pestaña manual para registro ágil en 2s)
+  openModal(tab = 'manual') {
     this.switchTab(tab);
     this.loadLatestDataIntoInputs();
     this.renderHistoryList();
@@ -107,16 +107,18 @@ const HealthSync = {
       const plugin = this.getHealthKitPlugin();
 
       if (this.isNativeHealthKitAvailable() && plugin) {
-        // 1. Solicitar permisos de HealthKit
+        // 1. Solicitar permisos de HealthKit con los identificadores válidos del plugin Swift
         await plugin.requestAuthorization({
-          all: ['weight', 'fatPercentage', 'activeEnergyBurned', 'stepCount', 'appleExerciseTime'],
-          read: ['weight', 'fatPercentage', 'activeEnergyBurned', 'stepCount', 'appleExerciseTime'],
+          all: ['weight', 'bodyFat', 'calories', 'steps', 'duration'],
+          read: ['weight', 'bodyFat', 'calories', 'steps', 'duration'],
           write: []
         });
 
-        // 2. Consultar muestra más reciente de peso (enviada por Renpho)
+        // 2. Consultar muestra más reciente de peso (enviada por Renpho a Apple Salud)
+        // Ventana de 30 días para no perder el último pesaje si fue hace varios días
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3);
+        const startDate = new Date();
+        startDate.setDate(today.getDate() - 30);
 
         let latestWeight = null;
         let latestFat = null;
@@ -124,31 +126,36 @@ const HealthSync = {
         try {
           const weightResult = await plugin.queryHKitSampleType({
             sampleName: 'weight',
-            startDate: startOfDay.toISOString(),
+            startDate: startDate.toISOString(),
             endDate: today.toISOString(),
-            limit: 1
+            limit: 20
           });
+
           if (weightResult && weightResult.resultData && weightResult.resultData.length > 0) {
-            const sample = weightResult.resultData[0];
-            latestWeight = sample.value;
+            // Ordenar por fecha de fin descendente para obtener el registro más reciente real
+            const sortedWeights = weightResult.resultData.sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+            latestWeight = sortedWeights[0].value;
           }
         } catch (e) {
-          console.warn('No se pudo leer peso de HealthKit:', e);
+          console.warn('Detalle lectura peso HealthKit:', e);
         }
 
         try {
           const fatResult = await plugin.queryHKitSampleType({
-            sampleName: 'fatPercentage',
-            startDate: startOfDay.toISOString(),
+            sampleName: 'bodyFat', // Identificador en el plugin Swift para % grasa
+            startDate: startDate.toISOString(),
             endDate: today.toISOString(),
-            limit: 1
+            limit: 20
           });
+
           if (fatResult && fatResult.resultData && fatResult.resultData.length > 0) {
-            const sample = fatResult.resultData[0];
-            latestFat = sample.value ? Math.round(sample.value * 1000) / 10 : null;
+            const sortedFats = fatResult.resultData.sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+            const rawVal = sortedFats[0].value;
+            // Si el plugin devuelve fracción (0.15 para 15%), convertir a porcentaje
+            latestFat = rawVal <= 1 ? Math.round(rawVal * 1000) / 10 : Math.round(rawVal * 10) / 10;
           }
         } catch (e) {
-          console.warn('No se pudo leer grasa de HealthKit:', e);
+          console.warn('Detalle lectura grasa HealthKit:', e);
         }
 
         if (latestWeight) {
@@ -164,19 +171,29 @@ const HealthSync = {
           App.showToast(`✅ Sincronizado desde Renpho: ${log.weight} kg`, 'success');
           this.closeModal();
           return;
+        } else {
+          // Permisos concedidos pero sin datos en los últimos 30 días
+          App.showToast('ℹ️ Conectado a Salud, pero no hay pesajes de Renpho en los últimos 30 días.', 'info');
+          this.switchTab('manual');
+          return;
         }
       }
 
-      // Si no es nativo o no hay muestra reciente en HealthKit:
-      await new Promise(r => setTimeout(r, 600));
-
-      const latest = Storage.getLatestWeightLog();
-      App.showToast(`⚖️ En entorno Web. Usa el Registro Rápido o importa el CSV de Renpho`, 'info');
+      // Si no es nativo o no detecta el plugin:
+      await new Promise(r => setTimeout(r, 400));
+      App.showToast(`⚖️ Modo Web activo. Usa el Registro Rápido (2s) o importa el CSV de Renpho`, 'info');
       this.switchTab('manual');
 
     } catch (err) {
       console.error('Error sincronizando con HealthKit:', err);
-      App.showToast('⚠️ No se pudo acceder a Apple Salud. Usa el registro rápido.', 'warning');
+      const errDetail = (err && (err.message || err.errorMessage || (typeof err === 'string' ? err : ''))) || '';
+      
+      // Diagnóstico detallado
+      if (errDetail.toLowerCase().includes('entitlement') || errDetail.toLowerCase().includes('permission') || errDetail.toLowerCase().includes('not available')) {
+        App.showToast('⚠️ Apple restringe HealthKit en cuentas gratuitas de Sideloadly. Usa el Registro Rápido o CSV.', 'warning');
+      } else {
+        App.showToast(`⚠️ ${errDetail || 'No se pudo acceder a Apple Salud'}. Usa el registro rápido.`, 'warning');
+      }
       this.switchTab('manual');
     } finally {
       if (btn) {
