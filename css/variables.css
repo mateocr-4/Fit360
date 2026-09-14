@@ -1,0 +1,90 @@
+:root {
+  /* Core Color Palette - Cyber Athletic / Dark Luxury */
+  --bg-primary: #0a0c14;
+  --bg-secondary: #101422;
+  --bg-tertiary: #161c30;
+  --bg-surface: rgba(22, 28, 48, 0.75);
+  --bg-surface-elevated: rgba(30, 39, 66, 0.85);
+  --bg-card: rgba(18, 23, 39, 0.7);
+  --bg-card-hover: rgba(26, 33, 56, 0.85);
+
+  /* Glassmorphism */
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-bright: rgba(255, 255, 255, 0.16);
+  --glass-bg: rgba(16, 20, 34, 0.82);
+  --backdrop-blur: blur(16px);
+
+  /* Primary Accents & Gradients */
+  --accent-cyan: #00f2fe;
+  --accent-blue: #4facfe;
+  --accent-lime: #00f59b;
+  --accent-emerald: #10b981;
+  --accent-purple: #8b5cf6;
+  --accent-magenta: #f43f5e;
+  --accent-amber: #fbbf24;
+  --accent-orange: #ff7849;
+
+  /* Gradient Presets */
+  --grad-primary: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  --grad-energy: linear-gradient(135deg, #00f59b 0%, #00d2ff 100%);
+  --grad-fire: linear-gradient(135deg, #ff7849 0%, #f43f5e 100%);
+  --grad-purple: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --grad-card: linear-gradient(145deg, rgba(26, 33, 58, 0.65) 0%, rgba(14, 18, 32, 0.85) 100%);
+  --grad-card-glow: linear-gradient(145deg, rgba(0, 242, 254, 0.08) 0%, rgba(79, 172, 254, 0.02) 100%);
+  --grad-apple-fitness: linear-gradient(135deg, #fa114f 0%, #ff5277 100%);
+
+  /* Macro Colors */
+  --color-protein: #00f2fe;
+  --color-carbs: #fbbf24;
+  --color-fat: #f43f5e;
+  --color-calories: #00f59b;
+  --color-apple-move: #fa114f;
+
+  /* Typography */
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Border Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow-cyan: 0 0 24px rgba(0, 242, 254, 0.28);
+  --shadow-glow-lime: 0 0 24px rgba(0, 245, 155, 0.28);
+  --shadow-glow-red: 0 0 24px rgba(250, 17, 79, 0.32);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Mobile App Shell Dimensions */
+  --header-height: 64px;
+  --bottom-nav-height: 72px;
+  --sidebar-width: 300px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+}

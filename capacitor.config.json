@@ -1,0 +1,26 @@
+{
+  "appId": "com.mateo.fit360",
+  "appName": "Fit360",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "https",
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0a0c14",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "CapacitorHealthkit": {
+      "healthkitDataTypes": [
+        "weight",
+        "fatPercentage",
+        "activeEnergyBurned",
+        "stepCount",
+        "appleExerciseTime"
+      ]
+    }
+  }
+}

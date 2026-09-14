@@ -1,0 +1,60 @@
+name: Build iOS IPA for Sideloadly
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web production bundle (www)
+        run: node build_dist.js
+
+      - name: Sync Capacitor iOS platform
+        run: npx cap sync ios
+
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install
+
+      - name: Compile iOS App (Unsigned for Sideloadly)
+        run: |
+          xcodebuild build \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package .ipa for Sideloadly
+        run: |
+          mkdir -p build/Payload
+          cp -r build/DerivedData/Build/Products/Release-iphoneos/App.app build/Payload/
+          cd build
+          zip -r Fit360.ipa Payload
+          echo "✅ Fit360.ipa generado con éxito"
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fit360-iOS-IPA
+          path: build/Fit360.ipa
+          retention-days: 14

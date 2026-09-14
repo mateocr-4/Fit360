@@ -1,0 +1,49 @@
+/* Animations & Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(0, 242, 254, 0.5); }
+  100% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
+}
+
+@keyframes pulseAppleGlow {
+  0% { box-shadow: 0 0 8px rgba(250, 17, 79, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(250, 17, 79, 0.7); }
+  100% { box-shadow: 0 0 8px rgba(250, 17, 79, 0.3); }
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.animate-apple-pulse {
+  animation: pulseAppleGlow 2s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: floatGentle 3s infinite ease-in-out;
+}
+
+/* Stagger list item entrance */
+.stagger-item {
+  animation: fadeIn 0.3s ease-out backwards;
+}
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
