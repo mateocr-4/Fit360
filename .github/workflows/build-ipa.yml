@@ -25,7 +25,9 @@ jobs:
         run: node build_dist.js
 
       - name: Sync Capacitor iOS platform
-        run: npx cap sync ios
+        run: |
+          chmod +x node_modules/.bin/cap
+          npx cap sync ios
 
       - name: Install CocoaPods
         run: |
