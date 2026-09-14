@@ -732,3 +732,219 @@
 .ios-step-desc strong {
   color: #fff;
 }
+
+/* ========================================================
+   ONBOARDING & SYNC GUIDE MODAL STYLES
+   ======================================================== */
+.onboarding-modal-card {
+  max-width: 540px !important;
+  width: 95%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  overflow: hidden;
+  background: rgba(13, 17, 30, 0.98);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 242, 254, 0.2);
+}
+
+.onboarding-header {
+  padding: 16px 20px 12px;
+  background: linear-gradient(180deg, rgba(0, 242, 254, 0.08) 0%, transparent 100%);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onboarding-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 242, 254, 0.15);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.onboarding-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+  position: relative;
+}
+
+.onboarding-slide {
+  display: none;
+  animation: fadeInGuide 0.3s ease-out;
+}
+
+.onboarding-slide.active {
+  display: block;
+}
+
+@keyframes fadeInGuide {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-hero-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 14px;
+}
+
+.onboarding-slide-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+
+.onboarding-slide-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+.onboarding-flow-diagram {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.onboarding-flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 62px;
+}
+
+.onboarding-flow-node .node-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  margin-bottom: 4px;
+}
+
+.onboarding-flow-node .node-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.onboarding-flow-arrow {
+  color: var(--accent-cyan);
+  font-weight: 800;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.onboarding-instruction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.onboarding-inst-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.onboarding-inst-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  color: #000;
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.onboarding-inst-text {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.onboarding-inst-text strong {
+  color: #fff;
+}
+
+.onboarding-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onboarding-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboarding-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.onboarding-dot.active {
+  width: 22px;
+  border-radius: 10px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+.onboarding-btn-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

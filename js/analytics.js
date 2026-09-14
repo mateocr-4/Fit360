@@ -249,17 +249,25 @@ const Analytics = {
           weightDiffEl.style.color = 'var(--accent-cyan)';
         }
       }
+    } else {
+      if (currentWeightEl) currentWeightEl.innerText = '-- kg';
+      if (startWeightEl) startWeightEl.innerText = '-- kg';
+      if (avgWeightEl) avgWeightEl.innerText = '-- kg';
+      if (weightDiffEl) {
+        weightDiffEl.innerText = 'Sin registros aún';
+        weightDiffEl.style.color = 'var(--text-muted)';
+      }
     }
 
     const ctx = canvas.getContext('2d');
     this.weightChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: labels.length > 0 ? labels : ['Sin datos'],
+        labels: labels.length > 0 ? labels : ['Hoy'],
         datasets: [
           {
             label: 'Peso Corporal (kg)',
-            data: weights.length > 0 ? weights : [75],
+            data: weights.length > 0 ? weights : [],
             borderColor: '#00f2fe',
             backgroundColor: 'rgba(0, 242, 254, 0.12)',
             fill: true,

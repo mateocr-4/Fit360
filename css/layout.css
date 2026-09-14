@@ -103,31 +103,77 @@
 
 /* Date Navigator in Header */
 .date-selector {
+  position: relative;
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
-  padding: 4px 10px;
-  gap: 6px;
+  padding: 2px 4px;
+  gap: 2px;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.date-selector:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--accent-cyan);
+}
+
+.date-selector .date-nav-arrow {
+  position: relative;
+  z-index: 20;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.date-selector .date-nav-arrow:hover {
+  color: #fff;
+  transform: scale(1.15);
+}
+
+.date-selector .date-center-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
-.date-selector:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--accent-cyan);
+.date-selector .date-center-btn:hover {
+  background: rgba(0, 242, 254, 0.12);
+  color: var(--accent-cyan);
 }
 
-.date-selector input[type="date"] {
+/* El input date cubre exactamente el botón central de forma transparente para abrir el calendario nativo en iOS y navegadores */
+.date-selector .date-center-btn input[type="date"] {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
+  cursor: pointer;
+  z-index: 10;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: block;
 }
 
 /* Main Content Area */

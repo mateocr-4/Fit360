@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fit360-v4';
+const CACHE_NAME = 'fit360-v5';
 const ASSETS = [
   './',
   './index.html',

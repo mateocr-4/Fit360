@@ -59,14 +59,21 @@
       </div>
 
       <!-- Header Actions -->
-      <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
-        <!-- Date Navigator -->
-        <div class="date-selector" onclick="App.openDatePicker()">
-          <button type="button" onclick="event.stopPropagation(); App.changeDate(-1);" style="color: var(--text-muted); padding: 2px 6px;">‹</button>
-          <span id="currentDateLabel">Hoy 📅</span>
-          <button type="button" onclick="event.stopPropagation(); App.changeDate(1);" style="color: var(--text-muted); padding: 2px 6px;">›</button>
-          <input type="date" id="headerDatePicker" onchange="App.setDate(this.value)">
+      <div class="header-right" style="display: flex; align-items: center; gap: 6px;">
+        <!-- Date Navigator with Direct Native Calendar Picker -->
+        <div class="date-selector">
+          <button type="button" class="date-nav-arrow" onclick="App.changeDate(-1);" aria-label="Día anterior" title="Día anterior">‹</button>
+          <div class="date-center-btn" title="Toca para abrir el calendario">
+            <span id="currentDateLabel">Hoy 📅</span>
+            <input type="date" id="headerDatePicker" onchange="App.setDate(this.value)" aria-label="Elegir fecha en el calendario">
+          </div>
+          <button type="button" class="date-nav-arrow" onclick="App.changeDate(1);" aria-label="Día siguiente" title="Día siguiente">›</button>
         </div>
+
+        <!-- Help / Sync Guide Button -->
+        <button class="icon-btn" onclick="App.openOnboardingGuide(0)" aria-label="Guía de sincronización" title="Guía: Salud, Fitness y Renpho" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.3); color: var(--accent-cyan);">
+          ❓
+        </button>
 
         <!-- iPhone Install Button -->
         <button class="icon-btn ios-badge-btn" onclick="App.openIosModal()" aria-label="Instalar en iPhone" title="Instalar en tu iPhone" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem;">
@@ -160,6 +167,13 @@
             <span class="menu-icon">⚖️</span>
             <span>Báscula Renpho & Peso</span>
             <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">Sync</span>
+          </a>
+        </li>
+        <li style="margin-top: 6px;">
+          <a class="sidebar-link" onclick="App.closeSidebar(); App.openOnboardingGuide(0);" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.22); color: var(--accent-cyan);">
+            <span class="menu-icon">📖</span>
+            <span>Guía de Sincronización</span>
+            <span class="chip chip-lime" style="font-size: 0.65rem; margin-left: auto;">Salud & Renpho</span>
           </a>
         </li>
         <li style="margin-top: 8px;">
@@ -968,10 +982,27 @@
               Importar Datos desde Archivo JSON
             </button>
             <input type="file" id="importFileInput" style="display: none;" accept=".json" onchange="Settings.handleFileImport(event)">
-            <button class="btn btn-danger btn-block" style="margin-top: 8px;" onclick="Settings.resetAllData()">
-              Restablecer Datos de Ejemplo
+            <button class="btn btn-danger btn-block" style="margin-top: 8px; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); color: #ff5277;" onclick="Settings.resetAllData()">
+              🧹 Limpiar todos los registros a 0 (Inicio limpio)
+            </button>
+            <button class="btn btn-secondary btn-block" style="font-size: 0.78rem; opacity: 0.75;" onclick="Settings.loadDemoData()">
+              🧪 Cargar datos de demostración (Opcional)
             </button>
           </div>
+        </div>
+
+        <!-- Sync & Onboarding Guide Card in Settings -->
+        <div class="card" style="background: rgba(0, 242, 254, 0.05); border-color: rgba(0, 242, 254, 0.25); margin-top: 14px;">
+          <div class="card-header">
+            <span class="card-title" style="color: var(--accent-cyan);">📖 Guía de Sincronización (UX)</span>
+            <span class="chip chip-cyan">Tour</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+            Aprende paso a paso cómo vincular tu <b>báscula Renpho</b>, tus anillos de <b>Apple Fitness</b>, los permisos de <b>Apple Salud</b> y cómo usar el calendario manual desplegable.
+          </p>
+          <button class="btn btn-primary btn-block" onclick="App.openOnboardingGuide(0)">
+            📖 Ver Guía de Sincronización Completa
+          </button>
         </div>
       </section>
 
@@ -1822,6 +1853,285 @@
           Entendido, ¡gracias! ✨
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: GUÍA INTERACTIVA DE UX & SINCRONIZACIÓN -->
+  <!-- (Salud, Fitness, Báscula Renpho & Calendario)  -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="onboardingGuideModal">
+    <div class="modal-card onboarding-modal-card">
+      
+      <!-- Modal Header -->
+      <div class="onboarding-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="onboarding-step-pill" id="onboardingStepPill">Paso 1 de 5</span>
+          <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;" id="onboardingStepName">Bienvenida</span>
+        </div>
+        <button class="icon-btn" onclick="App.closeOnboardingGuide()" aria-label="Cerrar guía">✕</button>
+      </div>
+
+      <!-- Modal Body (Slides) -->
+      <div class="onboarding-body">
+
+        <!-- SLIDE 0: Bienvenida & Valores a 0 -->
+        <div class="onboarding-slide active" id="guideSlide-0">
+          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
+            🎯
+          </div>
+          <h3 class="onboarding-slide-title">¡Bienvenido a Fit360!</h3>
+          <p class="onboarding-slide-subtitle">
+            Tu centro de control diario de nutrición, fuerza, cardio y pesajes. 100% privado, sin suscripciones y autónomo en tu iPhone.
+          </p>
+
+          <div style="background: rgba(0, 245, 155, 0.08); border: 1px solid rgba(0, 245, 155, 0.25); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 1.1rem;">✨</span>
+              <strong style="font-size: 0.86rem; color: var(--accent-lime);">Tus valores inician limpios a 0</strong>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+              Al descargar la app, todas las calorías consumidas, calorías quemadas, entrenamientos y pesajes comienzan en blanco para que reflejen tu progreso real desde hoy.
+            </p>
+          </div>
+
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 8px;">
+              ¿Tenías datos de prueba anteriores en tu teléfono?
+            </span>
+            <button class="btn btn-secondary btn-block" style="font-size: 0.8rem; padding: 7px 12px;" onclick="App.cleanDataAndNotify()">
+              🧹 Limpiar todos los registros a 0 ahora
+            </button>
+          </div>
+
+          <p style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+            👉 Pulsa en <b>Siguiente</b> para ver cómo conectar tu báscula Renpho y Apple Salud en menos de 1 minuto.
+          </p>
+        </div>
+
+        <!-- SLIDE 1: Báscula Digital Renpho -->
+        <div class="onboarding-slide" id="guideSlide-1">
+          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
+            ⚖️
+          </div>
+          <h3 class="onboarding-slide-title">Báscula Digital Renpho</h3>
+          <p class="onboarding-slide-subtitle">
+            Cómo sincronizar tu peso y % de grasa corporal en Fit360 de forma automática y precisa.
+          </p>
+
+          <!-- Flow Diagram -->
+          <div class="onboarding-flow-diagram">
+            <div class="onboarding-flow-node">
+              <div class="node-icon">⚖️</div>
+              <span class="node-name">Báscula</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon">📱</div>
+              <span class="node-name">App Renpho</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon">❤️</div>
+              <span class="node-name">Apple Salud</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon" style="border-color: var(--accent-cyan); background: rgba(0, 242, 254, 0.15);">⚡</div>
+              <span class="node-name" style="color: var(--accent-cyan);">Fit360</span>
+            </div>
+          </div>
+
+          <!-- Step by Step -->
+          <div class="onboarding-instruction-list">
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">1</div>
+              <div class="onboarding-inst-text">
+                Abre la app <strong>Renpho</strong> en tu iPhone.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">2</div>
+              <div class="onboarding-inst-text">
+                Ve a <strong>Mi Cuenta</strong> (abajo a la derecha) > <strong>Ajustes</strong> (o <em>Apps de terceros</em>) > <strong>Apple Salud</strong>.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">3</div>
+              <div class="onboarding-inst-text">
+                Activa los permisos de <strong>Peso</strong> y <strong>Porcentaje de Grasa</strong>.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">4</div>
+              <div class="onboarding-inst-text">
+                Pésate en tu báscula Renpho. El pesaje llegará a Apple Salud automáticamente por Bluetooth.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">5</div>
+              <div class="onboarding-inst-text">
+                En Fit360, pulsa <strong>"⚡ Sincronizar"</strong> en la tarjeta de Báscula del Dashboard. ¡Tu peso, grasa y variación se actualizarán solos!
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 8px 12px; font-size: 0.76rem; color: var(--text-secondary);">
+            💡 <b>¿De viaje o sin báscula?</b> Tienes la pestaña <b>"✍️ Manual"</b> para teclear tu peso en 2 segundos o ajustar con botones de ±0.1 kg.
+          </div>
+        </div>
+
+        <!-- SLIDE 2: Apple Fitness & Apple Watch -->
+        <div class="onboarding-slide" id="guideSlide-2">
+          <div class="onboarding-hero-icon" style="background: rgba(250, 17, 79, 0.12); border-color: rgba(250, 17, 79, 0.35);">
+            ⌚
+          </div>
+          <h3 class="onboarding-slide-title">Apple Fitness & Actividad</h3>
+          <p class="onboarding-slide-subtitle">
+            Tus 3 anillos (Moverse, Ejercicio, De pie), pasos y calorías quemadas en tiempo real.
+          </p>
+
+          <!-- Flow Diagram -->
+          <div class="onboarding-flow-diagram">
+            <div class="onboarding-flow-node">
+              <div class="node-icon">⌚</div>
+              <span class="node-name">Apple Watch</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon">🔴</div>
+              <span class="node-name">App Fitness</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon">❤️</div>
+              <span class="node-name">Apple Salud</span>
+            </div>
+            <span class="onboarding-flow-arrow">➔</span>
+            <div class="onboarding-flow-node">
+              <div class="node-icon" style="border-color: #fa114f; background: rgba(250, 17, 79, 0.15);">⚡</div>
+              <span class="node-name" style="color: #ff5277;">Fit360</span>
+            </div>
+          </div>
+
+          <!-- Step by Step -->
+          <div class="onboarding-instruction-list">
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">1</div>
+              <div class="onboarding-inst-text">
+                Tanto si llevas Apple Watch como si caminas con tu iPhone en el bolsillo, tus pasos y calorías activas se guardan en la app <strong>Fitness</strong>.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">2</div>
+              <div class="onboarding-inst-text">
+                En Fit360, pulsa el botón <strong>"Sincronizar"</strong> en la tarjeta de Apple Fitness en el Dashboard.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">3</div>
+              <div class="onboarding-inst-text">
+                <strong>Balance Calórico Inteligente</strong>: Las calorías activas quemadas se sumarán a tu balance diario para recalcular exactamente cuántas calorías puedes comer.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLIDE 3: Permisos en Apple Salud (iPhone) -->
+        <div class="onboarding-slide" id="guideSlide-3">
+          <div class="onboarding-hero-icon" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
+            ❤️
+          </div>
+          <h3 class="onboarding-slide-title">Permisos en Apple Salud</h3>
+          <p class="onboarding-slide-subtitle">
+            Cómo dar acceso a Fit360 para leer los datos de tu báscula y actividad en tu iPhone.
+          </p>
+
+          <div class="onboarding-instruction-list">
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">1</div>
+              <div class="onboarding-inst-text">
+                La primera vez que pulses <strong>"Sincronizar"</strong>, iOS mostrará la pantalla oficial del sistema de Apple Salud.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">2</div>
+              <div class="onboarding-inst-text">
+                Pulsa en <strong>"Activar todas"</strong> (Turn On All) en la parte superior y luego en <strong>"Permitir"</strong> (esquina superior derecha).
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: var(--radius-md); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span>⚠️</span>
+              <strong style="font-size: 0.84rem; color: #fb923c;">¿No te aparece la ventana o diste a 'No'?</strong>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+              Ve en tu iPhone a: <b>Ajustes</b> > <b>Privacidad y seguridad</b> > <b>Salud</b> > <b>Fit360</b> y activa en verde todos los permisos (Peso, Grasa corporal y Energía activa).
+            </p>
+          </div>
+        </div>
+
+        <!-- SLIDE 4: Calendario y Navegación Manual -->
+        <div class="onboarding-slide" id="guideSlide-4">
+          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
+            📅
+          </div>
+          <h3 class="onboarding-slide-title">Calendario y Navegación</h3>
+          <p class="onboarding-slide-subtitle">
+            Despliega el calendario nativo para elegir cualquier día de forma directa y cómoda.
+          </p>
+
+          <div class="onboarding-instruction-list">
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">1</div>
+              <div class="onboarding-inst-text">
+                <strong>Toca directamente la fecha en la cabecera ("Hoy 📅")</strong>: Se abrirá el selector de calendario nativo de tu iPhone para elegir cualquier día sin depender de avanzar flecha por flecha.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">2</div>
+              <div class="onboarding-inst-text">
+                Usa las flechas <strong>‹</strong> y <strong>›</strong> cuando solo quieras moverte un día adelante o atrás.
+              </div>
+            </div>
+            <div class="onboarding-inst-row">
+              <div class="onboarding-inst-num">3</div>
+              <div class="onboarding-inst-text">
+                Toca el botón flotante circular <strong>+</strong> abajo en el centro para registrar comidas, series de fuerza o cardio en cualquier momento.
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(0, 245, 155, 0.08); border: 1px solid rgba(0, 245, 155, 0.25); border-radius: var(--radius-md); padding: 10px 12px; margin-top: 10px;">
+            <p style="font-size: 0.8rem; color: var(--accent-lime); font-weight: 700; margin: 0;">
+              🚀 ¡Todo configurado! Pulsa el botón inferior para empezar.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="onboarding-footer">
+        <button class="btn btn-secondary" id="onboardingPrevBtn" onclick="App.prevOnboardingStep()" style="padding: 7px 14px; font-size: 0.8rem;">
+          ← Anterior
+        </button>
+
+        <div class="onboarding-dots" id="onboardingDotsContainer">
+          <div class="onboarding-dot active" onclick="App.setGuideStep(0)"></div>
+          <div class="onboarding-dot" onclick="App.setGuideStep(1)"></div>
+          <div class="onboarding-dot" onclick="App.setGuideStep(2)"></div>
+          <div class="onboarding-dot" onclick="App.setGuideStep(3)"></div>
+          <div class="onboarding-dot" onclick="App.setGuideStep(4)"></div>
+        </div>
+
+        <button class="btn btn-primary" id="onboardingNextBtn" onclick="App.nextOnboardingStep()" style="padding: 7px 16px; font-size: 0.8rem;">
+          Siguiente →
+        </button>
+      </div>
+
     </div>
   </div>
 

@@ -62,13 +62,35 @@ const Storage = {
       localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(this.getDefaultSettings()));
     }
 
+    // Migración limpia v2: si el dispositivo tiene datos de prueba simulados anteriores, limpiarlos a 0
+    const cleanInitKey = 'fit360_clean_init_v2';
+    if (!localStorage.getItem(cleanInitKey)) {
+      const existingWeight = localStorage.getItem(this.KEYS.WEIGHT_LOGS) || '';
+      if (existingWeight.includes('w_seed_')) {
+        localStorage.setItem(this.KEYS.WEIGHT_LOGS, JSON.stringify([]));
+      }
+      const existingData = localStorage.getItem(this.KEYS.DATA) || '';
+      if (existingData.includes('f1_') || existingData.includes('Pechuga de pollo')) {
+        localStorage.setItem(this.KEYS.DATA, JSON.stringify({}));
+      }
+      localStorage.setItem(cleanInitKey, 'true');
+    }
+
+    // Asegurar estructura limpia vacía a 0
     if (!localStorage.getItem(this.KEYS.DATA)) {
-      this.seedInitialData();
+      localStorage.setItem(this.KEYS.DATA, JSON.stringify({}));
     }
 
     if (!localStorage.getItem(this.KEYS.WEIGHT_LOGS)) {
-      this.seedInitialWeightLogs();
+      localStorage.setItem(this.KEYS.WEIGHT_LOGS, JSON.stringify([]));
     }
+  },
+
+  // Vaciar completamente todos los registros a 0 (inicio limpio)
+  clearAllDataToZero() {
+    localStorage.setItem(this.KEYS.DATA, JSON.stringify({}));
+    localStorage.setItem(this.KEYS.WEIGHT_LOGS, JSON.stringify([]));
+    localStorage.setItem('fit360_clean_init_v2', 'true');
   },
 
   // Cargar Ajustes
@@ -273,14 +295,13 @@ const Storage = {
   getLatestWeightLog() {
     const logs = this.getWeightLogs();
     if (logs.length === 0) {
-      const settings = this.getSettings();
       return {
-        weight: settings.profile?.weight || 76,
-        fatPct: 14.5,
-        date: this.formatDate(),
-        time: '08:00',
-        source: 'manual',
-        timing: 'fasting'
+        weight: '--',
+        fatPct: null,
+        date: '--',
+        time: '',
+        source: 'none',
+        timing: ''
       };
     }
     return logs[logs.length - 1];

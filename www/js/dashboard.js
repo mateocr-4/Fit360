@@ -100,6 +100,17 @@ const Dashboard = {
     const diffBadgeEl = document.getElementById('dashRenphoDiff');
     const dateEl = document.getElementById('dashRenphoDate');
 
+    if (latest.weight === '--' || !latest.weight) {
+      if (weightValEl) weightValEl.innerText = '-- kg';
+      if (fatValEl) fatValEl.innerText = 'Grasa: --';
+      if (dateEl) dateEl.innerText = 'Sin registros aún (Toca para sincronizar)';
+      if (diffBadgeEl) {
+        diffBadgeEl.className = 'chip chip-cyan';
+        diffBadgeEl.innerText = '⚖️ Sin datos';
+      }
+      return;
+    }
+
     if (weightValEl) {
       weightValEl.innerText = `${latest.weight} kg`;
     }

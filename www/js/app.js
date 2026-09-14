@@ -44,6 +44,13 @@ const App = {
 
     // 7. Comprobar entorno iOS / iPhone
     this.checkIosStatus();
+
+    // 8. Abrir guía de bienvenida y sincronización en el primer arranque
+    if (!localStorage.getItem('fit360_guide_completed')) {
+      setTimeout(() => {
+        this.openOnboardingGuide(0);
+      }, 500);
+    }
   },
 
   setupEventListeners() {
@@ -190,6 +197,7 @@ const App = {
       if (typeof picker.showPicker === 'function') {
         picker.showPicker();
       } else {
+        picker.focus();
         picker.click();
       }
     }
@@ -200,6 +208,94 @@ const App = {
     Nutrition.render();
     Gym.render();
     Cardio.render();
+    if (window.Analytics) Analytics.render();
+  },
+
+  // --- GUÍA INTERACTIVA DE BIENVENIDA & SINCRONIZACIÓN ---
+  currentGuideStep: 0,
+  guideTitles: [
+    'Bienvenida',
+    'Báscula Renpho',
+    'Apple Fitness',
+    'Apple Salud',
+    'Calendario & Uso'
+  ],
+
+  openOnboardingGuide(stepIndex = 0) {
+    this.currentGuideStep = stepIndex;
+    this.updateGuideStepUI();
+    const modal = document.getElementById('onboardingGuideModal');
+    if (modal) modal.classList.add('open');
+  },
+
+  closeOnboardingGuide() {
+    const modal = document.getElementById('onboardingGuideModal');
+    if (modal) modal.classList.remove('open');
+    localStorage.setItem('fit360_guide_completed', 'true');
+  },
+
+  setGuideStep(index) {
+    this.currentGuideStep = Math.max(0, Math.min(4, index));
+    this.updateGuideStepUI();
+  },
+
+  nextOnboardingStep() {
+    if (this.currentGuideStep >= 4) {
+      this.closeOnboardingGuide();
+      this.showToast('🚀 ¡Listo! Fit360 preparado para tus registros reales', 'success');
+      return;
+    }
+    this.currentGuideStep++;
+    this.updateGuideStepUI();
+  },
+
+  prevOnboardingStep() {
+    if (this.currentGuideStep > 0) {
+      this.currentGuideStep--;
+      this.updateGuideStepUI();
+    }
+  },
+
+  updateGuideStepUI() {
+    const totalSteps = 5;
+    const pill = document.getElementById('onboardingStepPill');
+    const name = document.getElementById('onboardingStepName');
+    const prevBtn = document.getElementById('onboardingPrevBtn');
+    const nextBtn = document.getElementById('onboardingNextBtn');
+
+    if (pill) pill.innerText = `Paso ${this.currentGuideStep + 1} de ${totalSteps}`;
+    if (name) name.innerText = this.guideTitles[this.currentGuideStep] || '';
+
+    // Mostrar slide activo
+    document.querySelectorAll('.onboarding-slide').forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === this.currentGuideStep);
+    });
+
+    // Actualizar dots indicadores
+    const dots = document.querySelectorAll('#onboardingDotsContainer .onboarding-dot');
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === this.currentGuideStep);
+    });
+
+    // Visibilidad botón anterior
+    if (prevBtn) {
+      prevBtn.style.visibility = this.currentGuideStep === 0 ? 'hidden' : 'visible';
+    }
+
+    // Texto botón siguiente / finalizar
+    if (nextBtn) {
+      if (this.currentGuideStep === totalSteps - 1) {
+        nextBtn.innerText = '🚀 ¡Empezar ahora!';
+      } else {
+        nextBtn.innerText = 'Siguiente →';
+      }
+    }
+  },
+
+  cleanDataAndNotify() {
+    Storage.clearAllDataToZero();
+    this.refreshAllViews();
+    this.showToast('✅ Todos los registros se han limpiado a 0', 'success');
   },
 
   // --- MODALES (BOTTOM SHEET) ---

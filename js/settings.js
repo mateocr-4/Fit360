@@ -118,15 +118,29 @@ const Settings = {
   },
 
   resetAllData() {
-    if (confirm('¿Estás seguro de que quieres restablecer los datos de demostración?')) {
-      localStorage.removeItem(Storage.KEYS.DATA);
-      Storage.seedInitialData();
-      App.showToast('Datos restablecidos a los valores por defecto', 'info');
+    if (confirm('¿Estás seguro de que quieres restablecer todos los registros a 0?\n\nSe vaciarán las comidas, entrenamientos, cardio y registros de peso para que empieces completamente limpio.')) {
+      Storage.clearAllDataToZero();
+      App.showToast('✅ Todos los registros se han limpiado a 0', 'info');
       this.render();
       if (window.Dashboard) Dashboard.render();
       if (window.Nutrition) Nutrition.render();
       if (window.Gym) Gym.render();
       if (window.Cardio) Cardio.render();
+      if (window.Analytics) Analytics.render();
+    }
+  },
+
+  loadDemoData() {
+    if (confirm('¿Quieres cargar datos de prueba simulados para explorar gráficos y ejemplos?')) {
+      Storage.seedInitialData();
+      Storage.seedInitialWeightLogs();
+      App.showToast('Datos de demostración cargados', 'info');
+      this.render();
+      if (window.Dashboard) Dashboard.render();
+      if (window.Nutrition) Nutrition.render();
+      if (window.Gym) Gym.render();
+      if (window.Cardio) Cardio.render();
+      if (window.Analytics) Analytics.render();
     }
   }
 };
