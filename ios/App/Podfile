@@ -21,8 +21,7 @@ end
 target 'App' do
   capacitor_pods
   # Add your Pods here
-  pod 'Google-Mobile-Ads-SDK', '~> 10.14.0'
-  pod 'GoogleUserMessagingPlatform', '~> 2.7.0'
+  pod 'GoogleUserMessagingPlatform', '2.6.0'
 end
 
 post_install do |installer|
