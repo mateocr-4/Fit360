@@ -20,7 +20,7 @@
   "author": "Mateo",
   "license": "MIT",
   "dependencies": {
-    "@capacitor-community/admob": "^6.2.0",
+    "@capacitor-community/admob": "^8.1.0",
     "@capacitor-community/apple-sign-in": "^6.0.0",
     "@capacitor-community/bluetooth-le": "^6.1.0",
     "@capacitor/core": "^6.1.2",
