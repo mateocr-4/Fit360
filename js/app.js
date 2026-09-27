@@ -24,6 +24,10 @@ const App = {
     if (window.Analytics) Analytics.init();
     Settings.init();
     if (window.HealthSync) HealthSync.init();
+    if (window.Social) Social.init();
+
+    // 4.1 Ocultar el Splash Screen nativo fluidamente tras renderizar el Dashboard
+    this.hideNativeSplashScreen();
 
     // 5. Configurar Service Worker si está disponible
     if ('serviceWorker' in navigator) {
@@ -42,14 +46,44 @@ const App = {
       if (installBtn) installBtn.style.display = 'flex';
     });
 
-    // 7. Comprobar entorno iOS / iPhone
-    this.checkIosStatus();
+    // 7. Entorno de ejecución listo (Capacitor iOS App Store)
 
     // 8. Abrir guía de bienvenida y sincronización en el primer arranque
     if (!localStorage.getItem('fit360_guide_completed')) {
       setTimeout(() => {
         this.openOnboardingGuide(0);
       }, 500);
+    }
+
+    // 9. Mostrar aviso diario de transparencia de anuncios (1 vez al día)
+    //    Solo si la guía de bienvenida ya fue completada (para no saturar al usuario nuevo)
+    if (localStorage.getItem('fit360_guide_completed')) {
+      setTimeout(() => {
+        this.showDailyAdNotice();
+      }, 800);
+    }
+  },
+
+  /**
+   * Oculta programáticamente el Splash Screen nativo de Capacitor
+   * para evitar destellos blancos y asegurar una transición Dark Luxury sin parpadeos (HIG).
+   */
+  hideNativeSplashScreen() {
+    try {
+      const SplashScreen = window.Capacitor?.Plugins?.SplashScreen;
+      if (SplashScreen && typeof SplashScreen.hide === 'function') {
+        // Doble frame rAF para garantizar que el DOM está completamente pintado antes del fade out
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              SplashScreen.hide({ fadeOutDuration: 300 });
+              console.log('✨ [App] Splash Screen nativo ocultado con fade out (300ms).');
+            }, 120);
+          });
+        });
+      }
+    } catch (e) {
+      console.warn('[App] No se pudo invocar SplashScreen.hide():', e);
     }
   },
 
@@ -76,6 +110,25 @@ const App = {
         }
       });
     });
+
+    // Listeners dedicados para el modal de transparencia de anuncios
+    const btnAcceptDailyAd = document.getElementById('btnAcceptDailyAd');
+    if (btnAcceptDailyAd) {
+      btnAcceptDailyAd.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        App.acceptDailyAd();
+      });
+    }
+
+    const btnCloseDailyAd = document.getElementById('btnCloseDailyAd');
+    if (btnCloseDailyAd) {
+      btnCloseDailyAd.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        App.closeDailyAdNotice();
+      });
+    }
 
     // Touch swipe para cerrar el sidebar
     let touchStartX = 0;
@@ -120,6 +173,7 @@ const App = {
     if (viewName === 'cardio') Cardio.render();
     if (viewName === 'analytics' && window.Analytics) Analytics.render();
     if (viewName === 'settings') Settings.render();
+    if (viewName === 'social' && window.Social) Social.render();
 
     // Scroll to top
     const mainEl = document.querySelector('.app-main');
@@ -222,6 +276,10 @@ const App = {
   ],
 
   openOnboardingGuide(stepIndex = 0) {
+    if (typeof window.openOnboardingGuide === 'function') {
+      window.openOnboardingGuide(stepIndex);
+      return;
+    }
     this.currentGuideStep = stepIndex;
     this.updateGuideStepUI();
     const modal = document.getElementById('onboardingGuideModal');
@@ -229,6 +287,10 @@ const App = {
   },
 
   closeOnboardingGuide() {
+    if (window.Onboarding && typeof window.Onboarding.close === 'function') {
+      window.Onboarding.close();
+      return;
+    }
     const modal = document.getElementById('onboardingGuideModal');
     if (modal) modal.classList.remove('open');
     localStorage.setItem('fit360_guide_completed', 'true');
@@ -337,64 +399,53 @@ const App = {
     }
   },
 
-  // --- GESTIÓN DE INSTALACIÓN EN IPHONE (iOS) ---
-  openIosModal() {
-    this.closeSidebar();
-    this.openModal('iosInstallModal');
+  // --- MÉTODOS DE UTILIDAD ---
+
+  // --- AVISO DIARIO DE ANUNCIO (TRANSPARENCIA) ---
+  showDailyAdNotice() {
+    const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const lastShown = localStorage.getItem('fit360_ad_notice_date');
+
+    // Si ya se mostró hoy, no hacer nada
+    if (lastShown === today) return;
+
+    // Abrir el modal de transparencia
+    const modal = document.getElementById('adTransparencyModal');
+    if (modal) modal.classList.add('open');
   },
 
-  closeIosModal() {
-    this.closeModal('iosInstallModal');
-  },
-
-  copyIosUrl() {
-    const url = 'http://192.168.1.135:3000';
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(() => {
-        this.showToast('Enlace copiado al portapapeles 📋', 'success');
-      }).catch(() => {
-        this.fallbackCopy(url);
-      });
-    } else {
-      this.fallbackCopy(url);
-    }
-  },
-
-  fallbackCopy(text) {
-    const input = document.createElement('input');
-    input.value = text;
-    document.body.appendChild(input);
-    input.select();
+  acceptDailyAd() {
     try {
-      document.execCommand('copy');
-      this.showToast('Enlace copiado al portapapeles 📋', 'success');
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('fit360_ad_notice_date', today);
     } catch (e) {
-      this.showToast('URL: ' + text, 'info');
+      console.warn('[App] No se pudo guardar fit360_ad_notice_date:', e);
     }
-    input.remove();
-  },
 
-  checkIosStatus() {
-    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    // Cerrar modal inmediatamente de forma segura
+    this.closeDailyAdNotice();
 
-    // Si está en Safari en iPhone pero no en modo app pantalla completa
-    if (isIos && !isStandalone) {
-      const dismissed = sessionStorage.getItem('fit360_ios_banner_dismissed');
-      if (!dismissed) {
-        setTimeout(() => {
-          const banner = document.getElementById('iosInstallBanner');
-          if (banner) banner.style.display = 'block';
-        }, 1000);
+    // Emitir anuncio intersticial a través de AdsManager (respetando ATT y Capping)
+    try {
+      if (window.AdsManager && typeof window.AdsManager.showInterstitial === 'function') {
+        window.AdsManager.showInterstitial('daily_support');
       }
+    } catch (e) {
+      console.warn('[App] Error al invocar showInterstitial:', e);
     }
+
+    App.showToast('🙌 ¡Gracias por apoyar Fit360!', 'success');
   },
 
-  dismissIosBanner() {
-    const banner = document.getElementById('iosInstallBanner');
-    if (banner) banner.style.display = 'none';
-    sessionStorage.setItem('fit360_ios_banner_dismissed', 'true');
+  closeDailyAdNotice() {
+    const modal = document.getElementById('adTransparencyModal');
+    if (modal) {
+      modal.classList.remove('open');
+      modal.style.display = 'none';
+      setTimeout(() => {
+        modal.style.display = '';
+      }, 400);
+    }
   },
 
   // --- TOAST NOTIFICATIONS ---
@@ -402,17 +453,26 @@ const App = {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    // Sanitize the type to prevent className injection
+    const safeType = ['info', 'success', 'error'].includes(type) ? type : 'info';
+
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `toast toast-${safeType}`;
     
     let icon = 'ℹ️';
-    if (type === 'success') icon = '✅';
-    if (type === 'error') icon = '⚠️';
+    if (safeType === 'success') icon = '✅';
+    if (safeType === 'error') icon = '⚠️';
 
-    toast.innerHTML = `
-      <span style="font-size: 1.1rem;">${icon}</span>
-      <span>${message}</span>
-    `;
+    // XSS FIX: Use textContent instead of innerHTML for user-facing message
+    const iconSpan = document.createElement('span');
+    iconSpan.style.fontSize = '1.1rem';
+    iconSpan.textContent = icon;
+
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message; // Safe — never parsed as HTML
+
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
 
     container.appendChild(toast);
 

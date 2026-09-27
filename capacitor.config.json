@@ -13,6 +13,14 @@
     "allowsLinkPreview": false
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": false,
+      "backgroundColor": "#0a0c14",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
     "CapacitorHealthkit": {
       "healthkitDataTypes": [
         "weight",

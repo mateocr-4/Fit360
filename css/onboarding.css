@@ -1,0 +1,557 @@
+/**
+ * Fit360 — Onboarding Wizard Stylesheet (Step-by-Step & Pure CSS Transitions)
+ * 
+ * Estilo Dark Luxury / Cyber Athletic con transiciones suaves entre pasos,
+ * componentes accesibles y diseño fluido optimizado para iOS (Safe-Area Aware).
+ */
+
+/* Contenedor Modal de Pantalla Completa */
+.onboarding-wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: var(--bg-primary, #0a0c14);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 242, 254, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 0% 100%, rgba(0, 245, 155, 0.08) 0%, transparent 50%);
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 24px) 20px env(safe-area-inset-bottom, 24px) 20px;
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.onboarding-wizard-overlay.wizard-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Encabezado con Barra de Progreso */
+.wizard-header {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto 16px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wizard-progress-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.wizard-progress-bar-fill {
+  height: 100%;
+  width: 33.33%;
+  background: var(--grad-primary, linear-gradient(135deg, #00f2fe 0%, #4facfe 100%));
+  border-radius: 99px;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+}
+
+.wizard-header-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wizard-step-indicator {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-cyan, #00f2fe);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.wizard-skip-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.wizard-skip-btn:hover {
+  color: #ffffff;
+}
+
+/* Contenedor de Diapositivas (Viewport con overflow oculto) */
+.wizard-viewport {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Pasos individuales con animación de deslizamiento */
+.wizard-step-pane {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  animation: wizardSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding-bottom: 24px;
+}
+
+.wizard-step-pane.active {
+  display: flex;
+}
+
+@keyframes wizardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Tipografía y encabezado de paso */
+.wizard-title-block {
+  margin-bottom: 4px;
+}
+
+.wizard-step-title {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.4px;
+}
+
+.wizard-step-desc {
+  font-family: var(--font-body, sans-serif);
+  font-size: 0.86rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Selector de Género */
+.gender-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gender-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  background: rgba(18, 23, 39, 0.7);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.gender-card-btn .gender-icon {
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  transition: transform 0.2s ease;
+}
+
+.gender-card-btn .gender-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.gender-card-btn:hover {
+  border-color: rgba(0, 242, 254, 0.3);
+  background: rgba(22, 28, 48, 0.85);
+}
+
+.gender-card-btn.active {
+  border-color: var(--accent-cyan, #00f2fe);
+  background: rgba(0, 242, 254, 0.1);
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(0, 242, 254, 0.2);
+}
+
+.gender-card-btn.active .gender-icon {
+  transform: scale(1.12);
+}
+
+/* Grid de Inputs Biométricos */
+.biometrics-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wizard-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wizard-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.wizard-input-unit-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.wizard-number-input {
+  width: 100%;
+  height: 48px;
+  background: rgba(10, 12, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 44px 0 14px;
+  color: #ffffff;
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.wizard-number-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan, #00f2fe);
+  box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.15);
+  background: rgba(16, 20, 34, 0.9);
+}
+
+.wizard-unit-badge {
+  position: absolute;
+  right: 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  pointer-events: none;
+}
+
+/* Selector de Objetivos (Paso 2) */
+.goals-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goal-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(18, 23, 39, 0.7);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.goal-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.goal-card-content {
+  flex: 1;
+}
+
+.goal-card-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.goal-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.3;
+}
+
+.goal-card-btn:hover {
+  background: rgba(22, 28, 48, 0.85);
+  border-color: rgba(0, 242, 254, 0.25);
+}
+
+.goal-card-btn.active {
+  border-color: var(--accent-cyan, #00f2fe);
+  background: linear-gradient(145deg, rgba(0, 242, 254, 0.12) 0%, rgba(18, 23, 39, 0.85) 100%);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
+}
+
+.goal-card-btn.active .goal-card-icon {
+  background: rgba(0, 242, 254, 0.2);
+}
+
+/* Nivel de Actividad Física */
+.activity-levels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.activity-pill-btn {
+  padding: 10px 12px;
+  background: rgba(18, 23, 39, 0.7);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.activity-pill-btn:hover {
+  border-color: rgba(0, 242, 254, 0.3);
+}
+
+.activity-pill-btn.active {
+  border-color: var(--accent-lime, #00f59b);
+  background: rgba(0, 245, 155, 0.12);
+  color: #ffffff;
+}
+
+/* Previsualización Metabólica en Vivo (Paso 2) */
+.metabolic-preview-card {
+  background: linear-gradient(145deg, rgba(16, 20, 34, 0.85) 0%, rgba(10, 12, 20, 0.95) 100%);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.metabolic-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.metabolic-kcal-badge {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--accent-cyan, #00f2fe);
+}
+
+.metabolic-macros-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.macro-chip {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.macro-chip-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  display: block;
+}
+
+.macro-chip-lbl {
+  font-size: 0.65rem;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+}
+
+/* Paso 3: Ecosistema de Salud y Hardware (Apple HIG) */
+.health-ecosystem-card {
+  background: rgba(18, 23, 39, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.health-privacy-notice {
+  display: flex;
+  gap: 12px;
+  background: rgba(0, 245, 155, 0.06);
+  border: 1px solid rgba(0, 245, 155, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.4;
+}
+
+.btn-health-connect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #fa114f 0%, #ff5277 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(250, 17, 79, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-health-connect:hover {
+  box-shadow: 0 6px 22px rgba(250, 17, 79, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-health-connect.connected {
+  background: rgba(0, 245, 155, 0.15);
+  color: var(--accent-lime, #00f59b);
+  border: 1px solid var(--accent-lime, #00f59b);
+  box-shadow: none;
+}
+
+.btn-bluetooth-connect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  background: rgba(0, 242, 254, 0.08);
+  color: var(--accent-cyan, #00f2fe);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 12px;
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-bluetooth-connect:hover {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: var(--accent-cyan, #00f2fe);
+}
+
+.btn-bluetooth-connect.paired {
+  border-color: var(--accent-lime, #00f59b);
+  color: var(--accent-lime, #00f59b);
+  background: rgba(0, 245, 155, 0.1);
+}
+
+/* Barra Inferior de Navegación del Wizard */
+.wizard-footer-bar {
+  width: 100%;
+  max-width: 480px;
+  margin: 12px auto 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-wizard-back {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-wizard-back:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-wizard-next {
+  flex: 1;
+  height: 48px;
+  background: var(--grad-primary, linear-gradient(135deg, #00f2fe 0%, #4facfe 100%));
+  color: #050b14;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 242, 254, 0.3);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-wizard-next:hover:not(:disabled) {
+  box-shadow: 0 6px 24px rgba(0, 242, 254, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-wizard-next:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wizard-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  border-top-color: #050b14;
+  border-radius: 50%;
+  animation: wizardSpin 0.7s linear infinite;
+  display: none;
+}
+
+.btn-wizard-next.is-loading .wizard-spinner {
+  display: inline-block;
+}
+
+.btn-wizard-next.is-loading .btn-wizard-text {
+  opacity: 0.7;
+}
+
+@keyframes wizardSpin {
+  to { transform: rotate(360deg); }
+}

@@ -11,14 +11,23 @@ if (!fs.existsSync(outDir)) {
 function copyDir(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
+  // Directories excluded from production build
+  const EXCLUDED_DIRS = ['node_modules', 'www', '.git', 'ios', 'docs', '.github', '.agents'];
+  // File patterns excluded from production build (secrets, configs)
+  const EXCLUDED_FILES = ['.env', '.env.local', '.env.production', '.gitignore'];
+
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name !== 'node_modules' && entry.name !== 'www' && entry.name !== '.git' && entry.name !== 'ios') {
+      if (!EXCLUDED_DIRS.includes(entry.name)) {
         copyDir(srcPath, destPath);
       }
     } else {
+      // Skip sensitive files
+      if (EXCLUDED_FILES.includes(entry.name) || entry.name.startsWith('.env')) {
+        continue;
+      }
       fs.copyFileSync(srcPath, destPath);
     }
   }

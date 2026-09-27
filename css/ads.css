@@ -1,0 +1,108 @@
+/**
+ * Fit360 — Ads & Monetization Stylesheet
+ * 
+ * Gestiona la prevención de superposiciones del banner adaptativo de AdMob (BOTTOM_CENTER)
+ * sobre la barra de navegación (.bottom-nav) y el contenedor principal (.app-main).
+ * Cumple con Apple Human Interface Guidelines asegurando que el contenido sea 100% interactivo.
+ */
+
+:root {
+  --admob-banner-height: 0px;
+}
+
+/* Estado activo cuando un banner de Google AdMob está visible en pantalla */
+body.admob-banner-active {
+  --admob-banner-height: 50px; /* Fallback dinámico; se actualiza por JS con la altura nativa exacta */
+}
+
+/* 1. Desplazar la barra inferior de pestañas hacia arriba para situarse justo encima del banner */
+body.admob-banner-active .bottom-nav {
+  bottom: var(--admob-banner-height) !important;
+  transition: bottom 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 2. Incrementar el padding inferior del scroll principal para que el último elemento no quede oculto */
+body.admob-banner-active .app-main {
+  padding-bottom: calc(
+    var(--bottom-nav-height, 72px) + 
+    var(--safe-area-bottom, 0px) + 
+    var(--admob-banner-height, 50px) + 
+    var(--space-xl, 24px)
+  ) !important;
+  transition: padding-bottom 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 3. Desplazar contenedores de notificaciones Toast */
+body.admob-banner-active .toast-container,
+body.admob-banner-active #toastContainer {
+  bottom: calc(
+    var(--bottom-nav-height, 72px) + 
+    var(--safe-area-bottom, 0px) + 
+    var(--admob-banner-height, 50px) + 
+    16px
+  ) !important;
+  transition: bottom 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 4. Desplazar botones de acción flotantes (FABs) si existen */
+body.admob-banner-active .fab,
+body.admob-banner-active .floating-action-btn,
+body.admob-banner-active .quick-action-btn {
+  bottom: calc(
+    var(--bottom-nav-height, 72px) + 
+    var(--safe-area-bottom, 0px) + 
+    var(--admob-banner-height, 50px) + 
+    16px
+  ) !important;
+  transition: bottom 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 5. Simulación de Banner en Entornos de Desarrollo / Web */
+.admob-web-banner-mock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: rgba(14, 18, 28, 0.94);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 99;
+  font-family: var(--font-family-base, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 0.76rem;
+  color: var(--text-secondary, #94a3b8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  animation: slideUpAd 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admob-web-banner-mock .ad-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admob-web-banner-mock .ad-title {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+@keyframes slideUpAd {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

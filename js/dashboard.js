@@ -4,7 +4,20 @@
 const Dashboard = {
   chartInstance: null,
 
+  // Widget metadata for the customize modal
+  WIDGET_META: {
+    calories:     { icon: '⚡', name: 'Balance Calórico' },
+    appleFitness: { icon: '⌚', name: 'Apple Fitness' },
+    weight:       { icon: '⚖️', name: 'Báscula & Peso' },
+    workouts:     { icon: '💪', name: 'Actividad Física' },
+    weeklyChart:  { icon: '📊', name: 'Tendencia Semanal' }
+  },
+
+  // Temporary config used while the modal is open
+  _tempConfig: null,
+
   init() {
+    this.applyWidgetConfig();
     this.render();
   },
 
@@ -354,6 +367,224 @@ const Dashboard = {
         }
       }
     });
+  },
+
+  // ==========================================
+  // DASHBOARD CUSTOMIZATION
+  // ==========================================
+
+  /** Apply saved widget visibility and order to the DOM */
+  applyWidgetConfig() {
+    const config = Storage.getDashboardWidgets();
+    const container = document.getElementById('dashboardWidgetsContainer');
+    if (!container) return;
+
+    // 1. Reorder DOM elements to match saved order
+    config.order.forEach(widgetId => {
+      const el = container.querySelector(`[data-widget="${widgetId}"]`);
+      if (el) container.appendChild(el);
+    });
+
+    // 2. Show/hide based on hidden list
+    container.querySelectorAll('.dash-widget').forEach(el => {
+      const id = el.getAttribute('data-widget');
+      if (config.hidden.includes(id)) {
+        el.classList.add('widget-hidden');
+      } else {
+        el.classList.remove('widget-hidden');
+      }
+    });
+  },
+
+  /** Open the customize modal and populate the widget list */
+  openCustomizeModal() {
+    const config = Storage.getDashboardWidgets();
+    // Deep copy to temporary state
+    this._tempConfig = {
+      order: [...config.order],
+      hidden: [...config.hidden]
+    };
+    this.renderCustomizeList();
+    App.openModal('dashboardCustomizeModal');
+  },
+
+  /** Render the sortable widget list inside the modal */
+  renderCustomizeList() {
+    const list = document.getElementById('dashWidgetList');
+    if (!list || !this._tempConfig) return;
+
+    list.innerHTML = this._tempConfig.order.map(widgetId => {
+      const meta = this.WIDGET_META[widgetId];
+      if (!meta) return '';
+      const isVisible = !this._tempConfig.hidden.includes(widgetId);
+      return `
+        <li class="dash-widget-item" draggable="true" data-widget-id="${widgetId}">
+          <span class="widget-drag-handle" title="Arrastra para reordenar">☰</span>
+          <div class="widget-item-info">
+            <span class="widget-item-icon">${meta.icon}</span>
+            <span class="widget-item-name">${meta.name}</span>
+          </div>
+          <label class="widget-toggle">
+            <input type="checkbox" ${isVisible ? 'checked' : ''}
+                   onchange="Dashboard.toggleWidget('${widgetId}', this.checked)">
+            <span class="widget-toggle-slider"></span>
+          </label>
+        </li>
+      `;
+    }).join('');
+
+    // Setup drag events on the list items
+    this._setupDragEvents(list);
+  },
+
+  /** Toggle a widget's visibility in temp config */
+  toggleWidget(widgetId, isVisible) {
+    if (!this._tempConfig) return;
+    if (isVisible) {
+      this._tempConfig.hidden = this._tempConfig.hidden.filter(id => id !== widgetId);
+    } else {
+      if (!this._tempConfig.hidden.includes(widgetId)) {
+        this._tempConfig.hidden.push(widgetId);
+      }
+    }
+  },
+
+  /** Save widget config and apply to dashboard */
+  saveWidgetConfig() {
+    if (!this._tempConfig) return;
+    Storage.saveDashboardWidgets(this._tempConfig);
+    this.applyWidgetConfig();
+    App.closeModal('dashboardCustomizeModal');
+    // Re-render the chart since it may have been hidden/shown
+    this.render();
+    App.showToast('✅ Dashboard personalizado guardado', 'success');
+  },
+
+  /** Reset widgets to default order and visibility */
+  resetWidgetDefaults() {
+    this._tempConfig = Storage.getDefaultWidgets();
+    this.renderCustomizeList();
+    App.showToast('Widgets restablecidos al orden original', 'info');
+  },
+
+  /** Setup HTML5 drag-and-drop on the widget list items */
+  _setupDragEvents(list) {
+    let draggedItem = null;
+
+    list.querySelectorAll('.dash-widget-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', item.dataset.widgetId);
+      });
+
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        list.querySelectorAll('.dash-widget-item').forEach(i => i.classList.remove('drag-over'));
+        draggedItem = null;
+        // Update temp order from the current DOM order
+        this._updateTempOrderFromDOM(list);
+      });
+
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (item !== draggedItem) {
+          item.classList.add('drag-over');
+        }
+      });
+
+      item.addEventListener('dragleave', () => {
+        item.classList.remove('drag-over');
+      });
+
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        item.classList.remove('drag-over');
+        if (draggedItem && draggedItem !== item) {
+          // Insert draggedItem before or after the drop target
+          const allItems = [...list.querySelectorAll('.dash-widget-item')];
+          const dragIdx = allItems.indexOf(draggedItem);
+          const dropIdx = allItems.indexOf(item);
+          if (dragIdx < dropIdx) {
+            item.parentNode.insertBefore(draggedItem, item.nextSibling);
+          } else {
+            item.parentNode.insertBefore(draggedItem, item);
+          }
+        }
+      });
+
+      // Touch support for mobile drag
+      this._setupTouchDrag(item, list);
+    });
+  },
+
+  /** Touch-based drag support for mobile devices */
+  _setupTouchDrag(item, list) {
+    const handle = item.querySelector('.widget-drag-handle');
+    if (!handle) return;
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    handle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      item.classList.add('dragging');
+      e.preventDefault();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      currentY = e.touches[0].clientY;
+
+      // Find the element under the touch point
+      const elemBelow = document.elementFromPoint(
+        e.touches[0].clientX,
+        e.touches[0].clientY
+      );
+      const targetItem = elemBelow?.closest('.dash-widget-item');
+
+      list.querySelectorAll('.dash-widget-item').forEach(i => i.classList.remove('drag-over'));
+      if (targetItem && targetItem !== item) {
+        targetItem.classList.add('drag-over');
+      }
+    }, { passive: false });
+
+    handle.addEventListener('touchend', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      item.classList.remove('dragging');
+
+      const elemBelow = document.elementFromPoint(
+        e.changedTouches[0].clientX,
+        e.changedTouches[0].clientY
+      );
+      const targetItem = elemBelow?.closest('.dash-widget-item');
+
+      list.querySelectorAll('.dash-widget-item').forEach(i => i.classList.remove('drag-over'));
+
+      if (targetItem && targetItem !== item) {
+        const allItems = [...list.querySelectorAll('.dash-widget-item')];
+        const dragIdx = allItems.indexOf(item);
+        const dropIdx = allItems.indexOf(targetItem);
+        if (dragIdx < dropIdx) {
+          targetItem.parentNode.insertBefore(item, targetItem.nextSibling);
+        } else {
+          targetItem.parentNode.insertBefore(item, targetItem);
+        }
+        this._updateTempOrderFromDOM(list);
+      }
+    });
+  },
+
+  /** Read the current DOM order of widget items and update _tempConfig */
+  _updateTempOrderFromDOM(list) {
+    const items = list.querySelectorAll('.dash-widget-item');
+    this._tempConfig.order = [...items].map(el => el.dataset.widgetId);
   }
 };
 

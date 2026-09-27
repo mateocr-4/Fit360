@@ -15,6 +15,24 @@
   <meta name="application-name" content="Fit360">
   <meta name="format-detection" content="telephone=no">
 
+  <!-- Security Headers (meta-tag CSP endurecida: Cero CDNs externos para scripts) -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' https://images.openfoodfacts.org https://*.google.com https://*.googleusercontent.com data: blob:;
+    connect-src 'self' https://world.openfoodfacts.org https://*.supabase.co wss://*.supabase.co https://*.google.com https://pagead2.googlesyndication.com;
+    font-src 'self';
+    media-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+  ">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
   <!-- Apple Touch Icons & Favicons -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152x152.png">
@@ -27,6 +45,9 @@
   <!-- Fuentes Locales (100% Offline - Sin depender de Google Fonts CDN) -->
   <link rel="stylesheet" href="css/fonts.css">
 
+  <!-- html5-qrcode: Barcode & QR Scanner (Versión Local 100% Offline, cero dependencias CDN) -->
+  <script src="js/html5-qrcode.min.js"></script>
+
   <!-- Chart.js (Versión Local 100% Offline) -->
   <script src="js/chart.min.js"></script>
 
@@ -36,8 +57,151 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/onboarding.css">
+  <link rel="stylesheet" href="css/ble-scale.css">
+  <link rel="stylesheet" href="css/ads.css">
 </head>
 <body>
+
+  <!-- ============================================================== -->
+  <!-- VISTA DE AUTENTICACIÓN / LOGIN INTERCEPTOR (Sign in with Apple & Email) -->
+  <!-- ============================================================== -->
+  <div class="auth-overlay auth-hidden" id="authScreen" role="dialog" aria-modal="true" aria-labelledby="authTitle" aria-describedby="authSubtitle">
+    <div class="auth-card">
+      
+      <!-- Brand & Header -->
+      <div class="auth-brand">
+        <div class="auth-logo-badge" aria-hidden="true">360</div>
+        <h1 class="auth-title" id="authTitle">Bienvenido a Fit360</h1>
+        <p class="auth-subtitle" id="authSubtitle">Inicia sesión para sincronizar tu entrenamiento y salud</p>
+      </div>
+
+      <!-- Apple HIG Official "Sign in with Apple" Button -->
+      <button type="button" class="btn-apple-signin" id="btnAppleSignIn" aria-label="Continuar con Apple">
+        <svg class="apple-logo-svg" viewBox="0 0 170 170" aria-hidden="true">
+          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.69-7.85-11.96-14.44-5.99-9.13-10.76-19.68-14.31-31.67-3.56-11.98-5.34-22.95-5.34-32.9 0-14.35 3.49-26.15 10.47-35.39 6.98-9.25 15.77-13.99 26.37-14.23 4.89 0 10.11 1.25 15.65 3.75 5.54 2.5 9.17 3.86 10.89 4.09 2.07-.35 5.86-1.78 11.37-4.29 5.51-2.51 10.42-3.71 14.73-3.6 10.88.58 19.78 4.79 26.69 12.63-9.57 5.76-14.24 13.91-14.01 24.45.24 8.35 3.43 15.34 9.58 20.97 6.15 5.63 13.38 8.94 21.69 9.94-2.22 6.75-4.99 13.55-8.31 20.4zM119.22 31.84c0-7.39 2.65-14.28 7.95-20.67 5.3-6.39 11.83-10.43 19.59-12.13.11 1.05.17 1.86.17 2.45 0 7.27-2.75 14.25-8.24 20.94-5.49 6.69-12.16 10.74-20.02 12.16-.23-.93-.35-1.84-.35-2.75z"/>
+        </svg>
+        <span>Continuar con Apple</span>
+      </button>
+
+      <!-- Divider -->
+      <div class="auth-divider" role="separator">
+        <span>o con correo electrónico</span>
+      </div>
+
+      <!-- Mode Tabs (Login / Register) -->
+      <div class="auth-mode-tabs" role="tablist" aria-label="Modo de acceso">
+        <button type="button" class="auth-tab-btn active" id="authTabLogin" role="tab" aria-selected="true" aria-controls="authForm">
+          Iniciar Sesión
+        </button>
+        <button type="button" class="auth-tab-btn" id="authTabRegister" role="tab" aria-selected="false" aria-controls="authForm">
+          Crear Cuenta
+        </button>
+      </div>
+
+      <!-- Global Alert -->
+      <div class="auth-global-alert" id="authGlobalAlert" role="alert" tabindex="-1">
+        <svg class="auth-global-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="authGlobalAlertText"></span>
+      </div>
+
+      <!-- Email / Password Form -->
+      <form class="auth-form" id="authForm" novalidate>
+        
+        <!-- Full Name (Only visible during Register) -->
+        <div class="auth-field" id="authNameField" style="display: none;">
+          <label for="authName" class="auth-label">Nombre completo</label>
+          <div class="auth-input-wrapper">
+            <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" id="authName" class="auth-input" placeholder="Tu nombre" autocomplete="name">
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="auth-field">
+          <label for="authEmail" class="auth-label">Correo electrónico</label>
+          <div class="auth-input-wrapper">
+            <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <input type="email" id="authEmail" class="auth-input" placeholder="ejemplo@correo.com" autocomplete="email" required aria-describedby="authEmailError" aria-invalid="false">
+          </div>
+          <span class="auth-field-error" id="authEmailError" role="alert"></span>
+        </div>
+
+        <!-- Password Field -->
+        <div class="auth-field">
+          <label for="authPassword" class="auth-label">Contraseña</label>
+          <div class="auth-input-wrapper">
+            <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" id="authPassword" class="auth-input" placeholder="••••••••" autocomplete="current-password" required aria-describedby="authPasswordError" aria-invalid="false">
+            <button type="button" class="auth-toggle-pwd-btn" id="authTogglePwd" aria-label="Ver contraseña">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+          <span class="auth-field-error" id="authPasswordError" role="alert"></span>
+
+          <!-- Real-time Password Strength Requirements (Registration mode only) -->
+          <div class="pwd-requirements-checklist" id="authPwdChecklist" style="display: none;" aria-live="polite">
+            <div class="pwd-req-item" id="pwdReqLength">
+              <span class="pwd-req-icon" aria-hidden="true">•</span>
+              <span>Mínimo 8 caracteres</span>
+            </div>
+            <div class="pwd-req-item" id="pwdReqUpper">
+              <span class="pwd-req-icon" aria-hidden="true">•</span>
+              <span>Al menos una letra mayúscula (A-Z)</span>
+            </div>
+            <div class="pwd-req-item" id="pwdReqNumber">
+              <span class="pwd-req-icon" aria-hidden="true">•</span>
+              <span>Al menos un número (0-9)</span>
+            </div>
+            <div class="pwd-req-item" id="pwdReqSpecial">
+              <span class="pwd-req-icon" aria-hidden="true">•</span>
+              <span>Al menos un carácter especial (!@#$%...)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button with Anti-Double-Submit Spinner -->
+        <button type="submit" class="btn-auth-submit" id="authSubmitBtn">
+          <span class="auth-spinner" aria-hidden="true"></span>
+          <span id="authSubmitBtnText" class="btn-text">Iniciar Sesión</span>
+        </button>
+      </form>
+
+      <!-- Offline / Local Mode Bypass (Apple Guideline 5.1.1 & UX Testing) -->
+      <div class="auth-guest-link-wrapper">
+        <button type="button" class="auth-guest-link" id="authGuestLink">
+          <span>Continuar sin cuenta (Modo Invitado / Probar UX)</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Terms & Privacy Note -->
+      <p class="auth-terms-note">
+        Tus datos de salud están aislados de la publicidad. Al continuar aceptas nuestra 
+        <a href="https://mateocr-4.github.io/Fit360/privacy-policy.html" target="_blank" rel="noopener">Política de Privacidad</a>.
+      </p>
+
+    </div>
+  </div>
 
   <!-- Mobile App Shell Container -->
   <div class="app-shell">
@@ -75,9 +239,9 @@
           ❓
         </button>
 
-        <!-- iPhone Install Button -->
-        <button class="icon-btn ios-badge-btn" onclick="App.openIosModal()" aria-label="Instalar en iPhone" title="Instalar en tu iPhone" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem;">
-          📱
+        <!-- Cloud Account & Sync Button -->
+        <button class="icon-btn" onclick="Auth.showAuthScreen()" aria-label="Mi Cuenta y Sincronización" title="Cuenta en la Nube & Sync" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.08); border-color: rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
+          ☁️
         </button>
       </div>
     </header>
@@ -129,7 +293,14 @@
           <a class="sidebar-link" onclick="App.closeSidebar(); Nutrition.openNutritionLibrary();">
             <span class="menu-icon">📖</span>
             <span>Guía de Alimentos</span>
-            <span class="menu-badge" style="background: rgba(0,242,254,0.15); color: var(--accent-cyan);">70+</span>
+            <span class="menu-badge" style="background: rgba(0,242,254,0.15); color: var(--accent-cyan);">115+</span>
+          </a>
+        </li>
+        <li>
+          <a class="sidebar-link" onclick="App.closeSidebar(); Nutrition.openMyRecipes();">
+            <span class="menu-icon">🍳</span>
+            <span>Mis Recetas</span>
+            <span class="menu-badge" style="background: rgba(0,245,155,0.15); color: var(--accent-lime);">Nuevo</span>
           </a>
         </li>
         <li>
@@ -156,6 +327,13 @@
             <span>Metas & Ajustes</span>
           </a>
         </li>
+        <li>
+          <a class="sidebar-link" data-view="social" onclick="App.navigateTo('social')">
+            <span class="menu-icon">👥</span>
+            <span>Amigos & Rutinas</span>
+            <span class="menu-badge" style="background: rgba(0,245,155,0.15); color: var(--accent-lime);">Social</span>
+          </a>
+        </li>
         <li style="margin-top: 10px;">
           <a class="sidebar-link" onclick="Nutrition.openAppleFitnessModal()" style="background: rgba(250,17,79,0.1); border-color: rgba(250,17,79,0.3); color: #ff5277;">
             <span class="menu-icon">⌚</span>
@@ -177,10 +355,10 @@
           </a>
         </li>
         <li style="margin-top: 8px;">
-          <a class="sidebar-link" onclick="App.openIosModal()" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35); color: var(--accent-cyan);">
-            <span class="menu-icon">📱</span>
-            <span>Instalar en mi iPhone</span>
-            <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">iOS Listo</span>
+          <a class="sidebar-link" onclick="App.closeSidebar(); Auth.showAuthScreen();" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
+            <span class="menu-icon">☁️</span>
+            <span>Cuenta en la Nube & Sync</span>
+            <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">Supabase</span>
           </a>
         </li>
         <li id="sidebarInstallPwa" style="display: none; margin-top: 6px;">
@@ -214,13 +392,22 @@
             <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">RESUMEN DE HOY</span>
             <h2 style="font-size: 1.4rem;">Panel Principal</h2>
           </div>
-          <div class="pill pill-orange">
-            <span>🔥</span>
-            <span>7 días de racha</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="icon-btn dash-customize-btn" onclick="Dashboard.openCustomizeModal()" aria-label="Personalizar Dashboard" title="Personalizar widgets">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+            </button>
+            <div class="pill pill-orange">
+              <span>🔥</span>
+              <span>7 días de racha</span>
+            </div>
           </div>
         </div>
 
-        <!-- Calorie Ring & Main Stat Card -->
+        <!-- Dashboard Widgets Container (reorderable) -->
+        <div id="dashboardWidgetsContainer">
+
+        <!-- Widget: Balance Calórico -->
+        <div class="dash-widget" data-widget="calories">
         <div class="card card-glow-cyan">
           <div class="card-header">
             <span class="card-title">⚡ Balance Calórico</span>
@@ -289,8 +476,10 @@
             </div>
           </div>
         </div>
+        </div><!-- /widget:calories -->
 
-        <!-- Apple Fitness iPhone Sync Card (Iconic 3-Rings) -->
+        <!-- Widget: Apple Fitness -->
+        <div class="dash-widget" data-widget="appleFitness">
         <div class="card card-glow-apple" style="background: linear-gradient(135deg, rgba(250, 17, 79, 0.12) 0%, rgba(18, 23, 39, 0.95) 100%);">
           <div class="card-header" style="margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -347,8 +536,10 @@
             </div>
           </div>
         </div>
+        </div><!-- /widget:appleFitness -->
 
-        <!-- Báscula Renpho & Apple Salud Card -->
+        <!-- Widget: Báscula & Peso -->
+        <div class="dash-widget" data-widget="weight">
         <div class="card card-glow-cyan" style="background: linear-gradient(135deg, rgba(0, 242, 254, 0.08) 0%, rgba(18, 23, 39, 0.95) 100%);">
           <div class="card-header" style="margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -358,9 +549,14 @@
                 <span style="display: block; font-size: 0.68rem; color: var(--text-muted);">Composición corporal & peso diario</span>
               </div>
             </div>
-            <button class="pill pill-cyan" onclick="HealthSync.openModal()">
-              ⚡ Registrar / Sync
-            </button>
+            <div style="display: flex; gap: 6px;">
+              <button class="pill pill-cyan" onclick="BleScale.openModal()" title="Conectar báscula inteligente por Bluetooth" style="background: rgba(0, 242, 254, 0.15); border-color: rgba(0, 242, 254, 0.4);">
+                📶 BLE
+              </button>
+              <button class="pill pill-cyan" onclick="HealthSync.openModal()">
+                ⚡ Salud / Manual
+              </button>
+            </div>
           </div>
 
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 4px 0;">
@@ -378,8 +574,10 @@
             </div>
           </div>
         </div>
+        </div><!-- /widget:weight -->
 
-        <!-- Today's Workouts Summary (Gym + Cardio) -->
+        <!-- Widget: Actividad Física Hoy -->
+        <div class="dash-widget" data-widget="workouts">
         <div class="card">
           <div class="card-header">
             <span class="card-title">💪 Actividad Física Hoy</span>
@@ -392,8 +590,10 @@
             <!-- Renderizado dinámicamente -->
           </div>
         </div>
+        </div><!-- /widget:workouts -->
 
-        <!-- 7-Day Trend Chart -->
+        <!-- Widget: Tendencia Semanal -->
+        <div class="dash-widget" data-widget="weeklyChart">
         <div class="card">
           <div class="card-header">
             <span class="card-title">📊 Tendencia Semanal</span>
@@ -403,6 +603,9 @@
             <canvas id="weeklyTrendChart"></canvas>
           </div>
         </div>
+        </div><!-- /widget:weeklyChart -->
+
+        </div><!-- /dashboardWidgetsContainer -->
 
       </section>
 
@@ -415,7 +618,10 @@
             <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">CONTROL DIARIO</span>
             <h2 style="font-size: 1.4rem;">Nutrición & Dieta</h2>
           </div>
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+            <button class="btn btn-secondary btn-sm" onclick="Nutrition.openMyRecipes()" style="font-size: 0.78rem;">
+              🍳 Mis Recetas
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="Nutrition.openNutritionLibrary()" style="font-size: 0.78rem;">
               📖 Guía Alimentos
             </button>
@@ -478,8 +684,9 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">☕ Desayuno</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
               <span class="pill pill-cyan" id="mealKcal_desayuno">0 kcal</span>
+              <button class="card-action-btn" onclick="Nutrition.openMyRecipes('desayuno')" title="Añadir receta a Desayuno" style="font-size: 0.72rem; padding: 3px 8px;">🍳 Receta</button>
               <button class="icon-btn" style="width: 32px; height: 32px;" onclick="Nutrition.openAddModal('desayuno')">+</button>
             </div>
           </div>
@@ -490,8 +697,9 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">🍽️ Almuerzo / Comida</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
               <span class="pill pill-cyan" id="mealKcal_almuerzo">0 kcal</span>
+              <button class="card-action-btn" onclick="Nutrition.openMyRecipes('almuerzo')" title="Añadir receta a Almuerzo" style="font-size: 0.72rem; padding: 3px 8px;">🍳 Receta</button>
               <button class="icon-btn" style="width: 32px; height: 32px;" onclick="Nutrition.openAddModal('almuerzo')">+</button>
             </div>
           </div>
@@ -502,8 +710,9 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">🍎 Merienda</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
               <span class="pill pill-cyan" id="mealKcal_merienda">0 kcal</span>
+              <button class="card-action-btn" onclick="Nutrition.openMyRecipes('merienda')" title="Añadir receta a Merienda" style="font-size: 0.72rem; padding: 3px 8px;">🍳 Receta</button>
               <button class="icon-btn" style="width: 32px; height: 32px;" onclick="Nutrition.openAddModal('merienda')">+</button>
             </div>
           </div>
@@ -514,8 +723,9 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">🌙 Cena</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
               <span class="pill pill-cyan" id="mealKcal_cena">0 kcal</span>
+              <button class="card-action-btn" onclick="Nutrition.openMyRecipes('cena')" title="Añadir receta a Cena" style="font-size: 0.72rem; padding: 3px 8px;">🍳 Receta</button>
               <button class="icon-btn" style="width: 32px; height: 32px;" onclick="Nutrition.openAddModal('cena')">+</button>
             </div>
           </div>
@@ -526,8 +736,9 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">🥜 Snacks & Extras</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
               <span class="pill pill-cyan" id="mealKcal_snacks">0 kcal</span>
+              <button class="card-action-btn" onclick="Nutrition.openMyRecipes('snacks')" title="Añadir receta a Snacks" style="font-size: 0.72rem; padding: 3px 8px;">🍳 Receta</button>
               <button class="icon-btn" style="width: 32px; height: 32px;" onclick="Nutrition.openAddModal('snacks')">+</button>
             </div>
           </div>
@@ -1009,6 +1220,95 @@
         </div>
       </section>
 
+      <!-- ============================================== -->
+      <!-- VISTA: COMUNIDAD & AMIGOS (SOCIAL)            -->
+      <!-- ============================================== -->
+      <section class="tab-view" id="view-social">
+        <!-- Social Header Card -->
+        <div class="card social-hero-card" style="margin-bottom: 14px; background: linear-gradient(135deg, rgba(0,245,155,0.12) 0%, rgba(0,242,254,0.06) 100%); border-color: rgba(0,245,155,0.3);">
+          <div class="flex-between" style="align-items: center;">
+            <div>
+              <span class="pill pill-lime" style="margin-bottom: 6px; display: inline-block;">Fit360 Social</span>
+              <h2 style="font-size: 1.35rem; color: #fff; margin-bottom: 4px;">Amigos & Comunidad</h2>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.3;">
+                Intercambia rutinas de gym y recetas con un toque o código QR.
+              </p>
+            </div>
+            <div style="font-size: 2.2rem; filter: drop-shadow(0 0 10px rgba(0,245,155,0.4));">
+              👥
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Navigation Pills -->
+        <div class="social-tabs-nav" style="display: flex; gap: 4px; margin-bottom: 16px;">
+          <button class="social-tab-btn active" id="socialTabBtn_friends" onclick="Social.setTab('friends')">
+            👥 Mis Amigos (<span id="socialFriendsCount">3</span>)
+          </button>
+          <button class="social-tab-btn" id="socialTabBtn_add" onclick="Social.setTab('add')">
+            ➕ Añadir / Mi FitID
+          </button>
+          <button class="social-tab-btn" id="socialTabBtn_import" onclick="Social.setTab('import')">
+            📥 Importar Código
+          </button>
+        </div>
+
+        <!-- TAB 1: LISTA DE AMIGOS -->
+        <div id="socialTabContent_friends">
+          <div id="socialFriendsList" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Rendered dynamically by Social.renderFriendsList() -->
+          </div>
+        </div>
+
+        <!-- TAB 2: MI FITID & AÑADIR -->
+        <div id="socialTabContent_add" style="display: none;">
+          <!-- My FitID Card -->
+          <div class="card" style="margin-bottom: 14px; text-align: center; padding: 20px 16px;">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🪪</div>
+            <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-cyan); font-weight: 700;">Tu Identificador Único</span>
+            <div id="myFitIdDisplay" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 8px 0 14px;">
+              FIT-MATEO-8492
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button class="btn btn-secondary btn-sm" onclick="Social.copyMyFitId()">
+                📋 Copiar FitID
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="Social.shareMyProfile()">
+                📲 Compartir Mi Perfil
+              </button>
+            </div>
+          </div>
+
+          <!-- Add by FitID Card -->
+          <div class="card">
+            <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 6px;">Añadir amigo por FitID o Nombre</h4>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">
+              Pide a tu compañero de entrenamiento su FitID (ej: <code>FIT-CARLOS-7742</code>) e introdúcelo aquí:
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="inputAddFriendId" class="form-input" placeholder="Ej: FIT-CARLOS-7742" style="flex: 1; text-transform: uppercase; font-family: monospace;">
+              <button class="btn btn-primary" onclick="Social.handleAddFriendSubmit()" style="padding: 8px 18px;">
+                Añadir
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: IMPORTAR CON CÓDIGO O QR -->
+        <div id="socialTabContent_import" style="display: none;">
+          <div class="card" style="padding: 18px 16px;">
+            <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 6px;">📥 Importar Rutina o Receta</h4>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">
+              Si tu amigo te ha compartido un código de rutina (<code>FIT-RT-...</code>) o de receta (<code>FIT-RC-...</code>), pégalo a continuación:
+            </p>
+            <textarea id="inputImportCode" class="form-input" rows="4" placeholder="Pega el código aquí (FIT-RT-... o FIT-RC-...)" style="width: 100%; font-family: monospace; font-size: 0.8rem; margin-bottom: 12px; resize: vertical;"></textarea>
+            <button class="btn btn-primary btn-block" onclick="Social.handleManualImport()">
+              🔍 Previsualizar e Importar
+            </button>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <!-- Bottom Tab Navigation -->
@@ -1070,68 +1370,131 @@
         <button class="icon-btn" onclick="App.closeModal('foodModal')">✕</button>
       </div>
 
-      <!-- Search in food presets -->
-      <div class="form-group" style="margin-bottom: 8px;">
-        <input type="text" class="form-control" placeholder="🔍 Buscar alimento (pollo, arroz, avena, yogur...)" oninput="Nutrition.renderPresetsList(this.value)">
+      <!-- Selector de Modo: Alimento vs Receta -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+        <button type="button" class="pill pill-cyan active" id="foodModalTabAlimento" onclick="Nutrition.switchFoodModalMode('alimento')" style="padding: 7px 10px; font-weight: 700; cursor: pointer; text-align: center; justify-content: center;">
+          🥗 Alimento / Gramos
+        </button>
+        <button type="button" class="pill pill-cyan" id="foodModalTabReceta" onclick="Nutrition.switchFoodModalMode('receta')" style="padding: 7px 10px; font-weight: 700; cursor: pointer; text-align: center; justify-content: center; opacity: 0.7;">
+          🍳 Mis Recetas
+        </button>
       </div>
 
-      <!-- Quick Presets List -->
-      <span class="form-label">Alimentos Frecuentes (Toca para seleccionar)</span>
-      <div id="foodPresetsContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; margin-bottom: 12px;">
-        <!-- Se rellena con JS -->
-      </div>
-
-      <!-- Portion Scaler -->
-      <div style="background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 10px; margin-bottom: 12px;">
-        <div class="flex-between" style="margin-bottom: 6px;">
-          <span class="form-label" style="margin-bottom: 0; color: var(--accent-cyan);">⚖️ Cantidad / Ración</span>
-          <span style="font-size: 0.8rem; font-weight: 700; color: #fff;"><span id="displayGramsVal">100</span> gramos</span>
+      <!-- MODO 1: Alimento Individual -->
+      <div id="foodModalContentAlimento">
+        <!-- Search in food presets -->
+        <div class="form-group" style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
+          <input type="text" class="form-control" placeholder="🔍 Buscar alimento (pollo, arroz, avena, yogur...)" oninput="Nutrition.renderPresetsList(this.value)" style="flex: 1;">
+          <button type="button" id="barcodeToggleBtn" onclick="BarcodeScanner.toggle()" title="Escanear código de barras"
+            style="flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px; border: 1.5px solid rgba(0,242,254,0.35); background: rgba(0,242,254,0.08); color: var(--accent-cyan); font-size: 1.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, border-color 0.2s;">
+            📷
+          </button>
         </div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <input type="range" class="slider-range" id="foodGramsSlider" min="10" max="500" value="100" step="5" 
-            oninput="document.getElementById('displayGramsVal').innerText = this.value; document.getElementById('foodGramsInput').value = this.value; Nutrition.scalePortion(this.value);">
-          <input type="number" id="foodGramsInput" class="form-control" value="100" style="width: 75px; text-align: center; padding: 6px;" 
-            oninput="document.getElementById('displayGramsVal').innerText = this.value; document.getElementById('foodGramsSlider').value = this.value; Nutrition.scalePortion(this.value);">
-        </div>
-        <div style="display: flex; gap: 4px; margin-top: 6px;">
-          <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=50; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">50g</button>
-          <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=100; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">100g</button>
-          <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=150; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">150g</button>
-          <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=200; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">200g</button>
-          <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=250; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">250g</button>
-        </div>
-      </div>
 
-      <div class="form-group">
-        <label class="form-label">Nombre del alimento</label>
-        <input type="text" id="foodNameInput" class="form-control" placeholder="Ej: Pechuga de pollo, Avena, Yogur...">
-      </div>
+        <!-- Barcode Scanner Panel (desplegable) -->
+        <div id="barcodeScannerPanel" style="display: none; margin-bottom: 12px; border-radius: 14px; overflow: hidden; border: 1.5px solid rgba(0,242,254,0.25); background: rgba(0,242,254,0.04);">
+          <!-- Header del panel -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(0,242,254,0.08);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">📷</span>
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.05em;">Escanear Código de Barras</span>
+            </div>
+            <button type="button" onclick="BarcodeScanner.close()" style="background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 2px 6px;">✕</button>
+          </div>
 
-      <div class="form-row">
+          <!-- Visor de cámara -->
+          <div style="position: relative; width: 100%;">
+            <div id="barcodeReaderView" style="width: 100%;"></div>
+            <!-- Marco de enfoque visual -->
+            <div id="barcodeAimFrame" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 220px; height: 90px; border: 2px solid var(--accent-cyan); border-radius: 10px; box-shadow: 0 0 0 2000px rgba(0,0,0,0.45); pointer-events: none;">
+              <span style="position: absolute; top: -1px; left: -1px; width: 18px; height: 18px; border-top: 3px solid var(--accent-cyan); border-left: 3px solid var(--accent-cyan); border-radius: 4px 0 0 0;"></span>
+              <span style="position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top: 3px solid var(--accent-cyan); border-right: 3px solid var(--accent-cyan); border-radius: 0 4px 0 0;"></span>
+              <span style="position: absolute; bottom: -1px; left: -1px; width: 18px; height: 18px; border-bottom: 3px solid var(--accent-cyan); border-left: 3px solid var(--accent-cyan); border-radius: 0 0 0 4px;"></span>
+              <span style="position: absolute; bottom: -1px; right: -1px; width: 18px; height: 18px; border-bottom: 3px solid var(--accent-cyan); border-right: 3px solid var(--accent-cyan); border-radius: 0 0 4px 0;"></span>
+              <div style="position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent); transform: translateY(-50%); animation: scanLine 1.6s linear infinite;"></div>
+            </div>
+          </div>
+
+          <!-- Estado / resultado -->
+          <div id="barcodeScanStatus" style="padding: 10px 14px; font-size: 0.82rem; color: var(--text-muted); text-align: center; min-height: 36px;">
+            Apunta la cámara al código de barras del producto
+          </div>
+        </div>
+        </div>
+
+        <!-- Quick Presets List -->
+        <span class="form-label">Alimentos Frecuentes (Toca para seleccionar)</span>
+        <div id="foodPresetsContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; margin-bottom: 12px;">
+          <!-- Se rellena con JS -->
+        </div>
+
+        <!-- Portion Scaler -->
+        <div style="background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 10px; margin-bottom: 12px;">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <span class="form-label" style="margin-bottom: 0; color: var(--accent-cyan);">⚖️ Cantidad / Ración</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #fff;"><span id="displayGramsVal">100</span> gramos</span>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="range" class="slider-range" id="foodGramsSlider" min="10" max="500" value="100" step="5" 
+              oninput="document.getElementById('displayGramsVal').innerText = this.value; document.getElementById('foodGramsInput').value = this.value; Nutrition.scalePortion(this.value);">
+            <input type="number" id="foodGramsInput" class="form-control" value="100" style="width: 75px; text-align: center; padding: 6px;" 
+              oninput="document.getElementById('displayGramsVal').innerText = this.value; document.getElementById('foodGramsSlider').value = this.value; Nutrition.scalePortion(this.value);">
+          </div>
+          <div style="display: flex; gap: 4px; margin-top: 6px;">
+            <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=50; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">50g</button>
+            <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=100; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">100g</button>
+            <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=150; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">150g</button>
+            <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=200; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">200g</button>
+            <button type="button" class="pill pill-cyan" style="cursor: pointer;" onclick="document.getElementById('foodGramsSlider').value=250; document.getElementById('foodGramsSlider').dispatchEvent(new Event('input'));">250g</button>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label class="form-label">🔥 Calorías (kcal)</label>
-          <input type="number" id="foodKcalInput" class="form-control" placeholder="250">
+          <label class="form-label">Nombre del alimento</label>
+          <input type="text" id="foodNameInput" class="form-control" placeholder="Ej: Pechuga de pollo, Avena, Yogur...">
         </div>
-        <div class="form-group">
-          <label class="form-label" style="color: var(--color-protein);">🥩 Proteínas (g)</label>
-          <input type="number" step="0.5" id="foodProteinInput" class="form-control" placeholder="30">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">🔥 Calorías (kcal)</label>
+            <input type="number" id="foodKcalInput" class="form-control" placeholder="250">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color: var(--color-protein);">🥩 Proteínas (g)</label>
+            <input type="number" step="0.5" id="foodProteinInput" class="form-control" placeholder="30">
+          </div>
         </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" style="color: var(--color-carbs);">🍞 Carbohidratos (g)</label>
+            <input type="number" step="0.5" id="foodCarbsInput" class="form-control" placeholder="25">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color: var(--color-fat);">🥑 Grasas (g)</label>
+            <input type="number" step="0.5" id="foodFatInput" class="form-control" placeholder="8">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="Nutrition.saveFood()" style="margin-top: 10px;">
+          Añadir a mi Registro
+        </button>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" style="color: var(--color-carbs);">🍞 Carbohidratos (g)</label>
-          <input type="number" step="0.5" id="foodCarbsInput" class="form-control" placeholder="25">
+      <!-- MODO 2: Mis Recetas -->
+      <div id="foodModalContentReceta" style="display: none;">
+        <div class="form-group" style="margin-bottom: 8px;">
+          <input type="text" id="foodModalRecipeSearch" class="form-control" placeholder="🔍 Buscar receta..." oninput="Nutrition.renderFoodModalRecipes(this.value)">
         </div>
-        <div class="form-group">
-          <label class="form-label" style="color: var(--color-fat);">🥑 Grasas (g)</label>
-          <input type="number" step="0.5" id="foodFatInput" class="form-control" placeholder="8">
+        <div style="display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 4px;">
+          <button type="button" class="pill pill-lime active" id="foodModalRecFilterMatch" onclick="Nutrition.filterFoodModalRecipes(true)">Sugeridas</button>
+          <button type="button" class="pill pill-lime" id="foodModalRecFilterAll" onclick="Nutrition.filterFoodModalRecipes(false)">Todas las Recetas</button>
+          <button type="button" class="pill pill-cyan" onclick="App.closeModal('foodModal'); Nutrition.openRecipeBuilder();" style="margin-left: auto; cursor: pointer;">+ Nueva</button>
+        </div>
+        <div id="foodModalRecipeList" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto;">
+          <!-- Inyectado por JS -->
         </div>
       </div>
-
-      <button class="btn btn-primary btn-block" onclick="Nutrition.saveFood()" style="margin-top: 10px;">
-        Añadir a mi Registro
-      </button>
     </div>
   </div>
 
@@ -1225,10 +1588,14 @@
             ⚡ Sincronizar ahora con Apple Salud
           </button>
 
-          <div style="margin-top: 10px; padding: 10px; background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.25); border-radius: var(--radius-md); font-size: 0.74rem; color: var(--text-secondary); line-height: 1.4;">
-            <strong style="color: #fb923c; display: block; margin-bottom: 4px;">⚠️ Nota sobre Apple Salud y Sideloadly:</strong>
-            Apple restringe el acceso directo a HealthKit a cuentas de desarrollador oficiales. Con un <b>Apple ID gratuito</b> en Sideloadly, iOS suele bloquear el permiso de HealthKit.<br>
-            👉 <b>Alternativas 100% disponibles</b>: Usa la pestaña <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('manual')">"✍️ Manual"</b> (solo tardas 2 segundos con los botones ±0.1 kg) o <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('history')">"📜 Historial / CSV"</b> para importar todos tus pesajes desde la app Renpho.
+          <button type="button" class="btn btn-secondary btn-block" onclick="HealthSync.closeModal(); BleScale.openModal();" style="padding: 10px; font-size: 0.85rem; margin-top: 8px; color: var(--accent-cyan); border-color: rgba(0, 242, 254, 0.4);">
+            📶 Conectar Báscula Directa por Bluetooth (BLE)
+          </button>
+
+          <div style="margin-top: 10px; padding: 10px; background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); font-size: 0.74rem; color: var(--text-secondary); line-height: 1.4;">
+            <strong style="color: var(--accent-cyan); display: block; margin-bottom: 4px;">💡 Sincronización Segura:</strong>
+            Al pulsar el botón, iOS te solicitará permiso para leer tu peso corporal y grasa. Asegúrate de conceder lectura en la pantalla del sistema para que la sincronización sea instantánea.<br>
+            👉 También puedes registrar tu peso en cualquier momento desde la pestaña <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('manual')">"✍️ Manual"</b> o importar desde <b style="color: var(--accent-cyan); cursor: pointer;" onclick="HealthSync.switchTab('history')">"📜 Historial / CSV"</b>.
           </div>
         </div>
 
@@ -1418,6 +1785,16 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+
+        <!-- 📷 ESCANEAR CÓDIGO DE BARRAS -->
+        <button class="btn btn-secondary" onclick="App.closeModal('quickFabModal'); BarcodeScanner.openScanModal();" style="justify-content: flex-start; padding: 14px 16px; border-color: rgba(0,242,254,0.4); background: rgba(0,242,254,0.06);">
+          <span style="font-size: 1.4rem;">📷</span>
+          <div style="text-align: left;">
+            <div style="font-weight: 700; color: var(--accent-cyan);">Escanear Código de Barras</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Identifica cualquier producto con la cámara</div>
+          </div>
+        </button>
+
         <button class="btn btn-secondary" onclick="App.closeModal('quickFabModal'); Nutrition.openAddModal('desayuno');" style="justify-content: flex-start; padding: 14px 16px;">
           <span style="font-size: 1.4rem;">🥑</span>
           <div style="text-align: left;">
@@ -1462,6 +1839,111 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- MODAL: BARCODE SCANNER (ESCANEAR PRODUCTO)     -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="barcodeScanModal">
+    <div class="modal-sheet" style="max-height: 92vh; overflow-y: auto;">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem;">📷 Escanear Producto</h3>
+          <span style="font-size: 0.75rem; color: var(--accent-cyan);">Apunta al código de barras del producto</span>
+        </div>
+        <button class="icon-btn" onclick="BarcodeScanner.closeModal()">✕</button>
+      </div>
+
+      <!-- Visor de cámara -->
+      <div id="barcodeCameraContainer" style="position: relative; width: 100%; border-radius: 14px; overflow: hidden; background: #000; min-height: 220px; margin-bottom: 12px;">
+        <!-- html5-qrcode monta el vídeo aquí -->
+        <div id="barcodeCameraView" style="width: 100%;"></div>
+
+        <!-- Marco de enfoque (se muestra cuando la cámara está activa) -->
+        <div id="barcodeFrame" style="display: none; position: absolute; inset: 0; pointer-events: none;">
+          <!-- Overlay oscuro con hueco central -->
+          <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5);"></div>
+          <!-- Rectángulo de enfoque -->
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%); width: 240px; height: 100px; border: 2px solid var(--accent-cyan); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.48);">
+            <!-- Esquinas -->
+            <span style="position:absolute;top:-2px;left:-2px;width:20px;height:20px;border-top:3px solid var(--accent-cyan);border-left:3px solid var(--accent-cyan);border-radius:4px 0 0 0;"></span>
+            <span style="position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-top:3px solid var(--accent-cyan);border-right:3px solid var(--accent-cyan);border-radius:0 4px 0 0;"></span>
+            <span style="position:absolute;bottom:-2px;left:-2px;width:20px;height:20px;border-bottom:3px solid var(--accent-cyan);border-left:3px solid var(--accent-cyan);border-radius:0 0 0 4px;"></span>
+            <span style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-bottom:3px solid var(--accent-cyan);border-right:3px solid var(--accent-cyan);border-radius:0 0 4px 0;"></span>
+            <!-- Línea de escaneo animada -->
+            <div id="barcodeScanLine" style="position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent);transform:translateY(-50%);animation:barcodeScanAnim 1.8s ease-in-out infinite;"></div>
+          </div>
+          <!-- Texto de ayuda -->
+          <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:0.78rem;color:rgba(255,255,255,0.7);">Centra el código de barras en el marco</div>
+        </div>
+      </div>
+
+      <!-- Estado del escáner -->
+      <div id="barcodeScanStatusMsg" style="text-align: center; font-size: 0.85rem; color: var(--text-muted); padding: 8px 0; min-height: 36px;">
+        Iniciando cámara...
+      </div>
+
+      <!-- Resultado del escaneo (oculto por defecto) -->
+      <div id="barcodeScanResult" style="display: none; margin-top: 8px;">
+        <!-- Tarjeta del producto -->
+        <div style="background: rgba(0,242,254,0.06); border: 1.5px solid rgba(0,242,254,0.25); border-radius: 14px; padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px;">
+            <img id="barcodeProductImg" src="" alt="Producto"
+              style="width: 64px; height: 64px; object-fit: contain; border-radius: 10px; background: rgba(255,255,255,0.06); flex-shrink: 0; display: none;">
+            <div style="flex: 1; min-width: 0;">
+              <div id="barcodeProductName" style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 3px; white-space: normal;"></div>
+              <div id="barcodeProductBrand" style="font-size: 0.78rem; color: var(--accent-cyan);"></div>
+              <div id="barcodeProductBarcode" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;"></div>
+            </div>
+          </div>
+
+          <!-- Tabla de macros por 100g -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+            <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 8px 4px; text-align: center;">
+              <div style="font-size: 1rem; font-weight: 800; color: var(--accent-lime);" id="barcodeKcal">—</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">kcal</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 8px 4px; text-align: center;">
+              <div style="font-size: 1rem; font-weight: 800; color: var(--color-protein);" id="barcodeProtein">—</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">prot (g)</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 8px 4px; text-align: center;">
+              <div style="font-size: 1rem; font-weight: 800; color: var(--color-carbs);" id="barcodeCarbs">—</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">carbs (g)</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 8px 4px; text-align: center;">
+              <div style="font-size: 1rem; font-weight: 800; color: var(--color-fat);" id="barcodeFat">—</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">grasas (g)</div>
+            </div>
+          </div>
+
+          <p style="font-size: 0.72rem; color: var(--text-muted); margin: 0 0 10px 0; text-align: center;">
+            Valores por 100 g · Fuente: Open Food Facts
+          </p>
+
+          <!-- Selector de comida y botón añadir -->
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="barcodeMealSelect" class="form-control" style="flex: 1; font-size: 0.85rem; padding: 9px 10px;">
+              <option value="desayuno">☕ Desayuno</option>
+              <option value="almuerzo">🍽️ Almuerzo</option>
+              <option value="merienda">🍎 Merienda</option>
+              <option value="cena">🌙 Cena</option>
+              <option value="snacks">🥜 Snacks</option>
+            </select>
+            <button class="btn btn-primary" onclick="BarcodeScanner.addScannedFood()" style="flex-shrink: 0; padding: 9px 16px; font-size: 0.85rem;">
+              ✅ Añadir
+            </button>
+          </div>
+        </div>
+
+        <!-- Botón para escanear otro -->
+        <button class="btn btn-secondary btn-block" onclick="BarcodeScanner.restartScan()" style="font-size: 0.85rem;">
+          🔄 Escanear otro producto
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- MODAL: ORGANIZADOR DE RUTINAS Y SESIONES GYM   -->
   <!-- ============================================== -->
   <div class="modal-overlay" id="routineOrganizerModal">
@@ -1493,9 +1975,14 @@
             <button class="pill pill-lime" id="filterRoutineCustom" onclick="Gym.filterRoutines('custom')">Mis Rutinas</button>
             <button class="pill pill-orange" id="filterRoutineStd" onclick="Gym.filterRoutines('standard')">Estándar</button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="Gym.openRoutineEditorModal()" style="font-size: 0.75rem; padding: 6px 10px;">
-            + Crear Rutina
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-secondary btn-sm" onclick="App.closeModal('routineOrganizerModal'); App.navigateTo('social');" style="font-size: 0.75rem; padding: 6px 10px; color: var(--accent-lime); border-color: rgba(0,245,155,0.3);" title="Ver e importar rutinas de amigos">
+              👥 Amigos
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="Gym.openRoutineEditorModal()" style="font-size: 0.75rem; padding: 6px 10px;">
+              + Crear Rutina
+            </button>
+          </div>
         </div>
 
         <div id="routinesOrganizerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 2px;">
@@ -1803,10 +2290,13 @@
         <button class="ref-cat-btn pill pill-cyan" data-category="Pescados & Mariscos" onclick="Nutrition.filterRefCategory('Pescados & Mariscos')">🐟 Pescados</button>
         <button class="ref-cat-btn pill pill-cyan" data-category="Huevos & Lácteos" onclick="Nutrition.filterRefCategory('Huevos & Lácteos')">🥚 Huevos/Lácteos</button>
         <button class="ref-cat-btn pill pill-cyan" data-category="Cereales & Granos" onclick="Nutrition.filterRefCategory('Cereales & Granos')">🌾 Cereales</button>
-        <button class="ref-cat-btn pill pill-cyan" data-category="Tubérculos & Verduras" onclick="Nutrition.filterRefCategory('Tubérculos & Verduras')">🥔 Tubérculos</button>
-        <button class="ref-cat-btn pill pill-cyan" data-category="Legumbres" onclick="Nutrition.filterRefCategory('Legumbres')">🍲 Legumbres</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Tubérculos & Verduras" onclick="Nutrition.filterRefCategory('Tubérculos & Verduras')">🥬 Verduras</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Legumbres" onclick="Nutrition.filterRefCategory('Legumbres')">🫘 Legumbres</button>
         <button class="ref-cat-btn pill pill-cyan" data-category="Frutas" onclick="Nutrition.filterRefCategory('Frutas')">🍌 Frutas</button>
-        <button class="ref-cat-btn pill pill-cyan" data-category="Grasas Saludables" onclick="Nutrition.filterRefCategory('Grasas Saludables')">🥑 Grasas</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Grasas Saludables" onclick="Nutrition.filterRefCategory('Grasas Saludables')">🥑 Grasas/Secos</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Condimentos & Salsas" onclick="Nutrition.filterRefCategory('Condimentos & Salsas')">🍯 Condimentos</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Bebidas Vegetales" onclick="Nutrition.filterRefCategory('Bebidas Vegetales')">🥛 Bebidas</button>
+        <button class="ref-cat-btn pill pill-cyan" data-category="Snacks Fitness" onclick="Nutrition.filterRefCategory('Snacks Fitness')">🍫 Snacks</button>
         <button class="ref-cat-btn pill pill-cyan" data-category="Suplementos" onclick="Nutrition.filterRefCategory('Suplementos')">🥤 Suplementos</button>
       </div>
 
@@ -1893,392 +2383,796 @@
     </div>
   </div>
 
-  <!-- Floating Smart iOS Install Prompt (Visible on iOS Safari) -->
-  <div class="ios-install-banner" id="iosInstallBanner" style="display: none;">
-    <div class="ios-banner-content">
-      <img src="icons/apple-touch-icon.png" class="ios-banner-icon" alt="Fit360">
-      <div class="ios-banner-text">
-        <strong>Instala Fit360 en tu iPhone</strong>
-        <span>Toca <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Compartir y luego <b>"Añadir a pantalla de inicio"</b></span>
+  <!-- ============================================== -->
+  <!-- MODAL: MIS RECETAS (Listado)                  -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="recipeListModal">
+    <div class="modal-sheet" style="max-height: 92vh;">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem;">🍳 Mis Recetas</h3>
+          <span style="font-size: 0.75rem; color: var(--accent-lime);">Crea y gestiona tus platos personalizados</span>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('recipeListModal')">✕</button>
       </div>
-      <button class="icon-btn" onclick="App.dismissIosBanner()" style="width: 28px; height: 28px; font-size: 14px; color: var(--text-muted);">✕</button>
+
+      <!-- Target Meal Notice Banner -->
+      <div id="recipeTargetMealNotice" style="display: none; margin-bottom: 8px;"></div>
+
+      <!-- Search -->
+      <div class="form-group" style="margin-bottom: 8px;">
+        <input type="text" id="recipeSearchInput" class="form-control" placeholder="🔍 Buscar receta..." oninput="Nutrition.renderRecipeList()">
+      </div>
+
+      <!-- Meal Type Filter -->
+      <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px;">
+        <button class="recipe-meal-filter-btn pill pill-lime active" data-meal="all" onclick="Nutrition.filterRecipesByMeal('all')">Todas</button>
+        <button class="recipe-meal-filter-btn pill pill-lime" data-meal="desayuno" onclick="Nutrition.filterRecipesByMeal('desayuno')">☕ Desayuno</button>
+        <button class="recipe-meal-filter-btn pill pill-lime" data-meal="almuerzo" onclick="Nutrition.filterRecipesByMeal('almuerzo')">🍽️ Almuerzo</button>
+        <button class="recipe-meal-filter-btn pill pill-lime" data-meal="merienda" onclick="Nutrition.filterRecipesByMeal('merienda')">🍎 Merienda</button>
+        <button class="recipe-meal-filter-btn pill pill-lime" data-meal="cena" onclick="Nutrition.filterRecipesByMeal('cena')">🌙 Cena</button>
+      </div>
+
+      <!-- Recipe List Container -->
+      <div id="recipeListContainer" style="display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto;">
+        <!-- Se rellena dinámicamente con JS -->
+      </div>
+
+      <!-- Create New Button -->
+      <button class="btn btn-primary btn-block" onclick="Nutrition.openRecipeBuilder()" style="margin-top: 12px;">
+        + Crear Nueva Receta
+      </button>
     </div>
-    <div class="ios-banner-arrow">▼</div>
   </div>
 
-  <!-- Modal: Instalar / Conectar con iPhone -->
-  <div class="modal-overlay" id="iosInstallModal">
-    <div class="modal-card" style="max-height: 90vh;">
+  <!-- ============================================== -->
+  <!-- MODAL: CONSTRUCTOR DE RECETAS                 -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="recipeBuilderModal">
+    <div class="modal-sheet" style="max-height: 94vh;">
+      <div class="sheet-handle"></div>
       <div class="modal-header">
-        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-          <span>📲</span> Instalar en tu iPhone (iOS)
-        </h3>
-        <button class="icon-btn" onclick="App.closeIosModal()">✕</button>
+        <div>
+          <h3 style="font-size: 1.15rem;">🍳 Constructor de Receta</h3>
+          <span style="font-size: 0.75rem; color: var(--accent-lime);">Selecciona ingredientes y ajusta gramajes</span>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('recipeBuilderModal')">✕</button>
       </div>
 
-      <div class="modal-body" style="padding-top: 4px;">
-        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
-          Convierte Fit360 en una <strong style="color: #fff;">App nativa en tu iPhone</strong> sin pasar por la App Store: pantalla completa sin barra de navegación, icono oficial y funcionamiento 100% offline.
+      <!-- Recipe Info -->
+      <div class="form-row" style="margin-bottom: 8px;">
+        <div class="form-group" style="flex: 0 0 50px;">
+          <label class="form-label">Icono</label>
+          <input type="text" id="builderRecipeIcon" class="form-control" value="🍽️" style="text-align: center; font-size: 1.3rem; padding: 4px;">
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label">Nombre de la Receta</label>
+          <input type="text" id="builderRecipeName" class="form-control" placeholder="Ej: Mi Pollo al Curry">
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 10px;">
+        <div class="form-group">
+          <label class="form-label">Comida</label>
+          <select id="builderMealType" class="form-control">
+            <option value="desayuno">Desayuno ☕</option>
+            <option value="almuerzo" selected>Almuerzo 🍽️</option>
+            <option value="merienda">Merienda 🍎</option>
+            <option value="cena">Cena 🌙</option>
+            <option value="snacks">Snacks 🥜</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Porciones</label>
+          <input type="number" id="builderServings" class="form-control" value="1" min="1" max="10" oninput="Nutrition.updateBuilderTotals()">
+        </div>
+      </div>
+
+      <!-- Ingredient Search -->
+      <div class="form-group" style="margin-bottom: 6px;">
+        <label class="form-label" style="color: var(--accent-cyan);">🔍 Buscar Ingrediente</label>
+        <input type="text" id="builderIngredientSearch" class="form-control" placeholder="Pollo, arroz, tomate, salmón..." oninput="Nutrition.renderBuilderIngredientSearch(this.value)">
+      </div>
+
+      <!-- Search results -->
+      <div id="builderFoodResults" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; margin-bottom: 10px;">
+        <!-- Se rellena con JS -->
+      </div>
+
+      <!-- Added Ingredients -->
+      <div style="background: rgba(0,245,155,0.06); border: 1px solid rgba(0,245,155,0.2); border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px;">
+        <div class="flex-between" style="margin-bottom: 6px;">
+          <span class="form-label" style="margin-bottom: 0; color: var(--accent-lime);">📋 Ingredientes Añadidos</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted);" id="builderIngCount">0 ingredientes</span>
+        </div>
+        <div id="builderIngredientsList" style="max-height: 160px; overflow-y: auto;">
+          <!-- Se rellena con JS -->
+        </div>
+      </div>
+
+      <!-- Live Totals -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 4px; text-align: center;">
+        <div class="card" style="margin-bottom: 0; padding: 6px 3px;">
+          <span style="font-size: 0.58rem; color: var(--text-muted); display: block;">TOTAL</span>
+          <strong style="font-size: 0.85rem; color: #fff;" id="builderTotalKcal">0 kcal</strong>
+        </div>
+        <div class="card" style="margin-bottom: 0; padding: 6px 3px;">
+          <span style="font-size: 0.58rem; color: var(--color-protein); display: block;">PROT</span>
+          <strong style="font-size: 0.85rem; color: var(--color-protein);" id="builderTotalProtein">0g</strong>
+        </div>
+        <div class="card" style="margin-bottom: 0; padding: 6px 3px;">
+          <span style="font-size: 0.58rem; color: var(--color-carbs); display: block;">CARB</span>
+          <strong style="font-size: 0.85rem; color: var(--color-carbs);" id="builderTotalCarbs">0g</strong>
+        </div>
+        <div class="card" style="margin-bottom: 0; padding: 6px 3px;">
+          <span style="font-size: 0.58rem; color: var(--color-fat); display: block;">GRASA</span>
+          <strong style="font-size: 0.85rem; color: var(--color-fat);" id="builderTotalFat">0g</strong>
+        </div>
+      </div>
+
+      <!-- Per Serving Totals -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; text-align: center;">
+        <div style="font-size: 0.65rem; color: var(--accent-lime);">
+          <span style="display: block; font-size: 0.55rem; color: var(--text-dim);">POR PORCIÓN</span>
+          <span id="builderPerServingKcal">0 kcal</span>
+        </div>
+        <div style="font-size: 0.65rem; color: var(--color-protein);">
+          <span id="builderPerServingProtein">0g</span>
+        </div>
+        <div style="font-size: 0.65rem; color: var(--color-carbs);">
+          <span id="builderPerServingCarbs">0g</span>
+        </div>
+        <div style="font-size: 0.65rem; color: var(--color-fat);">
+          <span id="builderPerServingFat">0g</span>
+        </div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label class="form-label">👨‍🍳 Instrucciones (opcional)</label>
+        <textarea id="builderInstructions" class="form-control" rows="2" placeholder="Ej: Cocinar el pollo a la plancha..." style="resize: vertical;"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="Nutrition.saveBuilderRecipe()">
+        💾 Guardar Receta
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: DETALLE DE RECETA                      -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="recipeDetailModal">
+    <div class="modal-sheet" style="max-height: 92vh;">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem;">📋 Detalle de Receta</h3>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('recipeDetailModal')">✕</button>
+      </div>
+
+      <div id="recipeDetailContent" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Se rellena dinámicamente con JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Store Production Ready -->
+
+
+
+  <!-- ============================================================== -->
+  <!-- WIZARD: ASISTENTE DE ONBOARDING PASO A PASO (APPLE HIG & BIOMETRÍA) -->
+  <!-- ============================================================== -->
+  <div class="onboarding-wizard-overlay wizard-hidden" id="onboardingWizardModal" role="dialog" aria-modal="true" aria-labelledby="wizardStepTitle">
+    
+    <!-- Header: Progreso y navegación -->
+    <div class="wizard-header">
+      <div class="wizard-progress-bar-track">
+        <div class="wizard-progress-bar-fill" id="wizardProgressFill"></div>
+      </div>
+      <div class="wizard-header-nav">
+        <span class="wizard-step-indicator" id="wizardStepIndicator">Paso 1 de 3</span>
+        <button type="button" class="wizard-skip-btn" onclick="Onboarding.close()" aria-label="Saltar asistente">Saltar</button>
+      </div>
+    </div>
+
+    <!-- Viewport interactivo con pasos animados -->
+    <div class="wizard-viewport">
+
+      <!-- PASO 1: Biometría Básica -->
+      <div class="wizard-step-pane active" id="wizardStep-1">
+        <div class="wizard-title-block">
+          <h2 class="wizard-step-title" id="wizardStepTitle">Tus Métricas Físicas</h2>
+          <p class="wizard-step-desc">Personaliza Fit360 con tus datos biológicos para cálculos metabólicos y nutricionales de alta precisión.</p>
+        </div>
+
+        <!-- Selector de Género Biológico -->
+        <div class="wizard-input-group">
+          <label class="wizard-label">Género Biológico (para ecuación metabólica)</label>
+          <div class="gender-selector-grid" role="group" aria-label="Selecciona género">
+            <button type="button" class="gender-card-btn active" data-sex="male" onclick="Onboarding.setSex('male')">
+              <span class="gender-icon">♂️</span>
+              <span class="gender-name">Hombre</span>
+            </button>
+            <button type="button" class="gender-card-btn" data-sex="female" onclick="Onboarding.setSex('female')">
+              <span class="gender-icon">♀️</span>
+              <span class="gender-name">Mujer</span>
+            </button>
+            <button type="button" class="gender-card-btn" data-sex="other" onclick="Onboarding.setSex('other')">
+              <span class="gender-icon">⚧️</span>
+              <span class="gender-name">Otro</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de Entradas: Edad, Altura, Peso -->
+        <div class="biometrics-input-grid">
+          <div class="wizard-input-group">
+            <label class="wizard-label" for="onboardAge">Edad</label>
+            <div class="wizard-input-unit-wrapper">
+              <input type="number" id="onboardAge" class="wizard-number-input" value="26" min="12" max="100" inputmode="numeric">
+              <span class="wizard-unit-badge">años</span>
+            </div>
+          </div>
+
+          <div class="wizard-input-group">
+            <label class="wizard-label" for="onboardHeight">Altura</label>
+            <div class="wizard-input-unit-wrapper">
+              <input type="number" id="onboardHeight" class="wizard-number-input" value="176" min="100" max="240" inputmode="numeric">
+              <span class="wizard-unit-badge">cm</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-input-group">
+          <label class="wizard-label" for="onboardWeight">Peso Corporal Actual</label>
+          <div class="wizard-input-unit-wrapper">
+            <input type="number" id="onboardWeight" class="wizard-number-input" value="74.0" min="35" max="250" step="0.1" inputmode="decimal">
+            <span class="wizard-unit-badge">kg</span>
+          </div>
+        </div>
+
+        <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1rem;">🔒</span>
+          <span style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.35;">Tus datos biométricos se protegen con Row Level Security y nunca se comparten con terceros.</span>
+        </div>
+      </div>
+
+      <!-- PASO 2: Objetivos Metabólicos y Actividad -->
+      <div class="wizard-step-pane" id="wizardStep-2">
+        <div class="wizard-title-block">
+          <h2 class="wizard-step-title">Objetivo & Actividad</h2>
+          <p class="wizard-step-desc">Selecciona tu meta para calibrar tu TDEE (Mifflin-St Jeor) y macros con máxima exactitud.</p>
+        </div>
+
+        <!-- Selector de Objetivo -->
+        <div class="wizard-input-group">
+          <label class="wizard-label">Objetivo Calórico</label>
+          <div class="goals-selector-list" role="radiogroup" aria-label="Objetivo físico">
+            <button type="button" class="goal-card-btn" data-goal="deficit" onclick="Onboarding.setGoal('deficit')" role="radio" aria-checked="false">
+              <div class="goal-card-icon" style="color: #ff9f43; background: rgba(255, 159, 67, 0.12);">🔥</div>
+              <div class="goal-card-content">
+                <div class="goal-card-title">Déficit Calórico</div>
+                <div class="goal-card-subtitle">Perder grasa corporal manteniendo tu masa muscular (-450 kcal).</div>
+              </div>
+            </button>
+
+            <button type="button" class="goal-card-btn active" data-goal="maintenance" onclick="Onboarding.setGoal('maintenance')" role="radio" aria-checked="true">
+              <div class="goal-card-icon" style="color: var(--accent-cyan); background: rgba(0, 242, 254, 0.12);">⚖️</div>
+              <div class="goal-card-content">
+                <div class="goal-card-title">Mantenimiento</div>
+                <div class="goal-card-subtitle">Conserva tu peso actual y recompón masa magra.</div>
+              </div>
+            </button>
+
+            <button type="button" class="goal-card-btn" data-goal="surplus" onclick="Onboarding.setGoal('surplus')" role="radio" aria-checked="false">
+              <div class="goal-card-icon" style="color: var(--accent-lime); background: rgba(0, 245, 155, 0.12);">💪</div>
+              <div class="goal-card-content">
+                <div class="goal-card-title">Superávit Calórico</div>
+                <div class="goal-card-subtitle">Ganancia muscular magra y volumen controlado (+350 kcal).</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Nivel de Actividad -->
+        <div class="wizard-input-group">
+          <label class="wizard-label">Nivel de Actividad Diaria</label>
+          <div class="activity-levels-grid">
+            <button type="button" class="activity-pill-btn" data-level="1.2" onclick="Onboarding.setActivity(1.2)">Sedentario</button>
+            <button type="button" class="activity-pill-btn" data-level="1.375" onclick="Onboarding.setActivity(1.375)">Ligero (1-3 d)</button>
+            <button type="button" class="activity-pill-btn active" data-level="1.55" onclick="Onboarding.setActivity(1.55)">Moderado (3-5 d)</button>
+            <button type="button" class="activity-pill-btn" data-level="1.725" onclick="Onboarding.setActivity(1.725)">Muy Activo (6-7 d)</button>
+          </div>
+        </div>
+
+        <!-- Previsualización Metabólica en Vivo -->
+        <div class="metabolic-preview-card">
+          <div class="metabolic-preview-header">
+            <div>
+              <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Meta Calórica Diaria</span>
+              <div class="metabolic-kcal-badge" id="onboardKcalBadge">2350 kcal</div>
+            </div>
+            <div style="font-size: 1.5rem;">🥗</div>
+          </div>
+          <div class="metabolic-macros-strip">
+            <div class="macro-chip">
+              <span class="macro-chip-val" id="onboardProtBadge" style="color: #ff5277;">148g</span>
+              <span class="macro-chip-lbl">Proteína (2.0g)</span>
+            </div>
+            <div class="macro-chip">
+              <span class="macro-chip-val" id="onboardCarbsBadge" style="color: #00f2fe;">270g</span>
+              <span class="macro-chip-lbl">Carbos</span>
+            </div>
+            <div class="macro-chip">
+              <span class="macro-chip-val" id="onboardFatBadge" style="color: #ffb703;">67g</span>
+              <span class="macro-chip-lbl">Grasas (0.9g)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Ecosistema de Salud (Apple HIG & Hardware BLE) -->
+      <div class="wizard-step-pane" id="wizardStep-3">
+        <div class="wizard-title-block">
+          <h2 class="wizard-step-title">Ecosistema de Salud</h2>
+          <p class="wizard-step-desc">Automatiza la sincronización de tu peso, entrenamientos y calorías conectando tus dispositivos.</p>
+        </div>
+
+        <div class="health-ecosystem-card">
+          <!-- Transparencia Apple HIG Guideline 5.1.1 -->
+          <div class="health-privacy-notice">
+            <span style="font-size: 1.25rem;">🍎</span>
+            <div>
+              <strong style="color: #ffffff; display: block; margin-bottom: 2px;">Transparencia y Privacidad (Apple Health)</strong>
+              Fit360 solicita acceso a Apple Health para sincronizar automáticamente tu peso corporal, calorías activas y pasos diarios. Tus datos de salud se quedan en tu dispositivo y nunca se utilizarán para publicidad ni se venderán a terceros (Apple Guideline 27.4 & 5.1.1).
+            </div>
+          </div>
+
+          <!-- Botón de Sincronización con Apple Health -->
+          <button type="button" class="btn-health-connect" id="btnConnectHealthKit" onclick="Onboarding.requestHealthKitPermissions()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span>Sincronizar con Apple Health</span>
+          </button>
+
+          <!-- Botón Secundario de Báscula Bluetooth (Renpho / BLE) -->
+          <div style="margin-top: 4px;">
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Hardware Externo (Bluetooth)</div>
+            <button type="button" class="btn-bluetooth-connect" id="btnConnectBluetooth" onclick="Onboarding.connectBluetoothScale()">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
+              </svg>
+              <span>Vincular báscula inteligente (Bluetooth / Renpho)</span>
+            </button>
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 0 0; text-align: center;">
+              Compatible con básculas Renpho por sincronización directa de HealthKit o BLE estándar.
+            </p>
+          </div>
+        </div>
+
+        <div style="background: rgba(0, 245, 155, 0.06); border: 1px solid rgba(0, 245, 155, 0.2); border-radius: 12px; padding: 10px 12px;">
+          <p style="font-size: 0.76rem; color: var(--accent-lime); font-weight: 600; margin: 0; line-height: 1.4;">
+            ✨ Puedes cambiar permisos o ajustar tus calorías en cualquier momento desde <b>Ajustes</b>.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Barra Inferior de Navegación -->
+    <div class="wizard-footer-bar">
+      <button type="button" class="btn-wizard-back" id="btnWizardBack" onclick="Onboarding.prevStep()" aria-label="Paso anterior" style="display: none;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <button type="button" class="btn-wizard-next" id="btnWizardNext" onclick="Onboarding.nextStep()">
+        <span class="wizard-spinner" aria-hidden="true"></span>
+        <span class="btn-wizard-text" id="btnWizardNextText">Continuar ›</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: CONEXIÓN BÁSCULA BLUETOOTH (BLE SCALE)  -->
+  <!-- ============================================== -->
+  <div class="ble-modal-overlay ble-hidden" id="bleScaleModal" role="dialog" aria-modal="true" aria-labelledby="bleModalTitle">
+    <div class="ble-card">
+      
+      <!-- Header -->
+      <div class="ble-header">
+        <div class="ble-header-left">
+          <div class="ble-header-icon" aria-hidden="true">📶</div>
+          <div>
+            <h3 class="ble-header-title" id="bleModalTitle">Báscula Inteligente</h3>
+            <p class="ble-header-subtitle">Sincronización directa Bluetooth (Renpho / BLE)</p>
+          </div>
+        </div>
+        <button type="button" class="ble-close-btn" onclick="BleScale.closeModal()" aria-label="Cerrar ventana">✕</button>
+      </div>
+
+      <!-- Body: Los 4 estados BLE -->
+      <div class="ble-body">
+
+        <!-- ESTADO 1: IDLE -->
+        <div class="ble-view-idle" id="bleView_idle">
+          <div class="ble-idle-scale-graphic">
+            ⚖️
+            <span class="ble-idle-scale-badge">BLE 5.0</span>
+          </div>
+          <div>
+            <h4 style="font-size: 1.1rem; color: #fff; margin: 0 0 6px 0; font-family: var(--font-display);">Conectar Báscula Inteligente</h4>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); max-width: 320px; margin: 0 auto; line-height: 1.45;">
+              Súbete un instante a la báscula para encender su pantalla y activar su señal Bluetooth.
+            </p>
+          </div>
+          <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 12px; padding: 10px 14px; width: 100%; box-sizing: border-box; text-align: left;">
+            <div style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">Compatibilidad Directa</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.35;">
+              Básculas Renpho (todas las series ES/Smart), QN-Scale, Yolanda, Chipsea y cualquier báscula con perfil estándar Bluetooth GATT (0x181D).
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO 2: SCANNING (RADAR ANIMADO) -->
+        <div class="ble-view-scanning" id="bleView_scanning" style="display: none;">
+          <div class="ble-radar-container">
+            <div class="ble-radar-wave"></div>
+            <div class="ble-radar-wave"></div>
+            <div class="ble-radar-wave"></div>
+            <div class="ble-radar-center">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size: 1.05rem; color: #fff; margin: 0 0 4px 0; font-family: var(--font-display);">Buscando Báscula Cercana...</h4>
+            <p style="font-size: 0.76rem; color: var(--accent-cyan); margin: 0;">Escaneando señales Bluetooth Low Energy</p>
+          </div>
+          <!-- Dispositivos detectados -->
+          <div class="ble-devices-found" id="bleDiscoveredList"></div>
+        </div>
+
+        <!-- ESTADO 3: CONNECTED / READING (EN TIEMPO REAL) -->
+        <div class="ble-view-reading" id="bleView_reading" style="display: none;">
+          <span class="ble-status-badge">
+            <span class="ble-pulse-dot"></span>
+            <span>Báscula Enlazada</span>
+          </span>
+          <div class="ble-reading-dial">
+            <div class="ble-live-weight-wrapper">
+              <span class="ble-live-weight-val" id="bleLiveWeightVal">0.0</span>
+              <span class="ble-live-weight-unit">kg</span>
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size: 0.98rem; color: #fff; margin: 0 0 4px 0;" id="bleLiveStatusText">Súbete descalzo a la báscula</h4>
+            <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0;">
+              Permanece quieto 3 segundos mientras los sensores BIA miden tu peso e impedancia.
+            </p>
+          </div>
+        </div>
+
+        <!-- ESTADO 4: SUCCESS -->
+        <div class="ble-view-success" id="bleView_success" style="display: none;">
+          <div class="ble-success-check">✓</div>
+          <div>
+            <div style="font-size: 0.75rem; color: var(--accent-lime); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">¡Medición Completada!</div>
+            <div class="ble-success-weight-display" id="bleSuccessWeightVal">74.5 kg</div>
+          </div>
+          <div class="ble-metrics-pill-strip">
+            <span class="ble-metric-pill" id="bleSuccessFatVal">🟣 14.8% grasa corporal</span>
+            <span class="ble-metric-pill" id="bleSuccessDeviceName">Renpho Smart Scale</span>
+          </div>
+          <!-- Badges de sincronización -->
+          <div class="ble-sync-badges">
+            <div class="ble-sync-badge-item ble-badge-supabase">
+              <span>☁️</span>
+              <span>Guardado en Nube (Supabase)</span>
+            </div>
+            <div class="ble-sync-badge-item ble-badge-healthkit">
+              <span>❤️</span>
+              <span>Sincronizado en Apple Health</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO ERROR -->
+        <div class="ble-view-idle" id="bleView_error" style="display: none;">
+          <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #ef4444;">
+            ⚠️
+          </div>
+          <div>
+            <h4 style="font-size: 1.05rem; color: #fff; margin: 0 0 6px 0;">No se pudo conectar</h4>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); max-width: 300px; margin: 0 auto; line-height: 1.4;" id="bleErrorMessageText">
+              Verifica que el Bluetooth de tu iPhone esté encendido y que la báscula tenga batería.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="ble-footer">
+        <button type="button" class="ble-btn-secondary" id="bleSecondaryBtn" onclick="BleScale.closeModal()" style="display: none;">
+          Cancelar
+        </button>
+        <button type="button" class="ble-btn-primary" id="blePrimaryBtn" onclick="BleScale.startScan()">
+          🔍 Buscar Báscula
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: AVISO DIARIO DE ANUNCIO (TRANSPARENCIA) -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="adTransparencyModal" style="align-items: center;">
+    <div class="modal-card ad-transparency-card" style="position: relative;">
+
+      <!-- Close button (✕) to dismiss modal safely -->
+      <button type="button" class="icon-btn ad-modal-close-btn" id="btnCloseDailyAd" onclick="App.closeDailyAdNotice()" aria-label="Cerrar aviso">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Glow accent top bar -->
+      <div class="ad-modal-topbar"></div>
+
+      <!-- Header with heart icon -->
+      <div class="ad-modal-header">
+        <div class="ad-modal-icon-circle">
+          <span class="ad-modal-heart-icon">💚</span>
+        </div>
+        <h3 class="ad-modal-title">Fit360 es gratis gracias a ti</h3>
+        <p class="ad-modal-subtitle">
+          Mantener una app de calidad tiene costes reales: servidores, desarrollo, actualizaciones y mejoras constantes.
+        </p>
+      </div>
+
+      <!-- Transparent explanation -->
+      <div class="ad-modal-body">
+
+        <!-- Promise card -->
+        <div class="ad-promise-card">
+          <div class="ad-promise-row">
+            <span class="ad-promise-icon">🎯</span>
+            <div>
+              <strong class="ad-promise-label">Nuestra promesa</strong>
+              <p class="ad-promise-text">Solo verás <strong>1 anuncio corto al día</strong>. Nada más. Sin banners, sin pop-ups invasivos, sin interrupciones durante tu entrenamiento.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- What it helps fund -->
+        <div class="ad-fund-grid">
+          <div class="ad-fund-item">
+            <span class="ad-fund-emoji">🛠️</span>
+            <span class="ad-fund-label">Desarrollo</span>
+          </div>
+          <div class="ad-fund-item">
+            <span class="ad-fund-emoji">🔒</span>
+            <span class="ad-fund-label">Privacidad</span>
+          </div>
+          <div class="ad-fund-item">
+            <span class="ad-fund-emoji">🚀</span>
+            <span class="ad-fund-label">Mejoras</span>
+          </div>
+          <div class="ad-fund-item">
+            <span class="ad-fund-emoji">📱</span>
+            <span class="ad-fund-label">Servidores</span>
+          </div>
+        </div>
+
+        <!-- Empathy note -->
+        <div class="ad-empathy-note">
+          <span>🤝</span>
+          <span>Con tu pequeño apoyo diario, Fit360 sigue siendo <strong>gratis, privada y sin suscripciones</strong> para todos.</span>
+        </div>
+
+      </div>
+
+      <!-- CTA Button -->
+      <div class="ad-modal-footer">
+        <button type="button" class="btn ad-accept-btn" id="btnAcceptDailyAd" onclick="App.acceptDailyAd()">
+          <span>💪</span> ¡Entendido, adelante!
+        </button>
+        <span class="ad-footer-note">Este aviso solo aparece 1 vez al día</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: PERSONALIZAR DASHBOARD                  -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="dashboardCustomizeModal">
+    <div class="modal-card dash-customize-modal">
+      <div class="modal-topbar" style="background: linear-gradient(90deg, #00f2fe 0%, #4facfe 50%, #00f59b 100%);"></div>
+
+      <div class="modal-header" style="padding: 20px 20px 10px;">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800;">⚙️ Personalizar Dashboard</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Elige qué widgets ver y en qué orden</p>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('dashboardCustomizeModal')" aria-label="Cerrar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 10px 20px 20px;">
+        <ul class="dash-widget-list" id="dashWidgetList">
+          <!-- Rendered dynamically by Dashboard.renderCustomizeList() -->
+        </ul>
+
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 14px; font-size: 0.82rem;" onclick="Dashboard.resetWidgetDefaults()">
+          ↻ Restablecer por defecto
+        </button>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 20px 20px;">
+        <button class="btn btn-primary" style="width: 100%;" onclick="Dashboard.saveWidgetConfig()">
+          ✅ Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: PERFIL DE AMIGO (DETALLE & RUTINAS)     -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="modalFriendProfile">
+    <div class="modal-card" style="max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title">Perfil de Amigo</h3>
+        <button class="icon-btn" onclick="App.closeModal('modalFriendProfile')" aria-label="Cerrar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; padding: 14px 18px 20px;">
+        <!-- Friend Profile Hero -->
+        <div class="friend-profile-hero">
+          <div class="friend-hero-avatar">
+            <span id="friendModalAvatar">🏋️‍♂️</span>
+          </div>
+          <h3 id="friendModalName" style="color: #fff; font-size: 1.15rem; margin-bottom: 2px;">Carlos Pro Trainer</h3>
+          <span id="friendModalTag" class="pill pill-cyan" style="font-size: 0.65rem; margin-bottom: 4px;">Entrenador Fuerza</span>
+          <span id="friendModalFitId" style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">FIT-CARLOS-7742</span>
+          <p id="friendModalBio" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.35; max-width: 90%;">
+            Especialista en fuerza, técnica limpia y sobrecarga progresiva.
+          </p>
+
+          <div class="friend-stats-strip">
+            <div class="friend-stat-item">
+              <span class="val" id="friendModalStreak">42d</span>
+              <span class="lbl">Racha</span>
+            </div>
+            <div class="friend-stat-item">
+              <span class="val" id="friendModalWorkouts">320</span>
+              <span class="lbl">Entrenos</span>
+            </div>
+            <div class="friend-stat-item">
+              <span class="val" style="color: var(--accent-lime);">Activo</span>
+              <span class="lbl">Estado</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Tabs (Rutinas vs Recetas) -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button class="social-tab-btn active" id="friendSubTabBtn_routines" onclick="Social.setFriendSubTab('routines')">
+            🏋️‍♂️ Rutinas
+          </button>
+          <button class="social-tab-btn" id="friendSubTabBtn_recipes" onclick="Social.setFriendSubTab('recipes')">
+            🍲 Recetas
+          </button>
+        </div>
+
+        <!-- Subtab Content: Rutinas -->
+        <div id="friendSubContent_routines">
+          <div id="friendRoutinesList"></div>
+        </div>
+
+        <!-- Subtab Content: Recetas -->
+        <div id="friendSubContent_recipes" style="display: none;">
+          <div id="friendRecipesList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: COMPARTIR CON AMIGOS (QR & CÓDIGO)      -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="modalShareItem" style="align-items: center;">
+    <div class="modal-card" style="text-align: center; max-width: 380px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="shareModalTitle">Compartir con Amigos</h3>
+        <button class="icon-btn" onclick="App.closeModal('modalShareItem')" aria-label="Cerrar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 10px 18px 20px;">
+        <p id="shareModalSubtitle" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
+          Tu amigo puede escanear este código QR con su cámara o importar el código en su app.
         </p>
 
-        <!-- Offline & Developer Mode Notice -->
-        <div class="card card-glow-lime" style="padding: 10px 14px; margin-bottom: 12px; background: rgba(0, 245, 155, 0.06); border-color: rgba(0, 245, 155, 0.3);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-            <span style="font-size: 1.1rem;">⚡</span>
-            <strong style="font-size: 0.86rem; color: var(--accent-lime);">100% Autónoma y Offline en tu iPhone</strong>
-          </div>
-          <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.35; margin: 0;">
-            Al pulsar <b>"Añadir a pantalla de inicio"</b>, la app se descarga en la memoria interna de tu iPhone. <b>No necesita que el PC esté encendido ni estar en el mismo Wi-Fi</b>: puedes usarla en el gimnasio, en la calle con datos móviles o en modo avión.
-          </p>
+        <!-- QR Canvas Container -->
+        <div class="qr-canvas-box">
+          <canvas id="shareQrCanvas" width="190" height="190"></canvas>
         </div>
 
-        <!-- QR Code Card -->
-        <div class="qr-card-container">
-          <div class="qr-image-wrapper">
-            <img src="icons/qr-iphone.png" alt="Código QR para abrir Fit360 en iPhone" />
-          </div>
-          <span style="font-size: 0.82rem; font-weight: 700; color: var(--accent-cyan);">
-            📷 Apunta la cámara de tu iPhone aquí
-          </span>
-          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-            Abre el enlace directo en Safari con un solo toque
-          </span>
+        <!-- Code Display -->
+        <div class="share-code-box" id="shareModalCodeDisplay" onclick="Social.copyShareCode()" title="Toca para copiar">
+          FIT-RT-...
         </div>
 
-        <!-- Direct Link Copy Box -->
-        <div class="card" style="padding: 10px 14px; margin-bottom: 14px; background: rgba(0, 242, 254, 0.05); border-color: rgba(0, 242, 254, 0.25);">
-          <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">O introduce esta URL en Safari (iPhone):</span>
-          <div class="flex-between" style="gap: 8px;">
-            <code style="font-family: monospace; font-size: 0.9rem; color: var(--accent-cyan); font-weight: 700; word-break: break-all;">
-              http://192.168.1.135:3000
-            </code>
-            <button class="btn btn-outline" style="padding: 5px 12px; font-size: 0.75rem; flex-shrink: 0;" onclick="App.copyIosUrl()">
-              📋 Copiar
-            </button>
-          </div>
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+          <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="Social.copyShareCode()">
+            📋 Copiar Código
+          </button>
+          <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="Social.shareViaNative()">
+            📲 Compartir (WhatsApp/AirDrop)
+          </button>
         </div>
-
-        <!-- Steps Timeline -->
-        <h4 style="font-size: 0.9rem; margin-bottom: 8px; color: #fff; display: flex; align-items: center; gap: 6px;">
-          <span>📋</span> Pasos para guardarla en tu pantalla de inicio:
-        </h4>
-
-        <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 6px 12px; margin-bottom: 14px;">
-          <div class="ios-step-item">
-            <div class="ios-step-num">1</div>
-            <div class="ios-step-desc">
-              <strong>Misma red Wi-Fi</strong>: Verifica que tu iPhone esté conectado al mismo Wi-Fi que este ordenador.
-            </div>
-          </div>
-          <div class="ios-step-item">
-            <div class="ios-step-num">2</div>
-            <div class="ios-step-desc">
-              <strong>Abre en Safari</strong>: Escanea el QR o escribe la dirección en <strong>Safari</strong> (el navegador nativo de Apple).
-            </div>
-          </div>
-          <div class="ios-step-item">
-            <div class="ios-step-num">3</div>
-            <div class="ios-step-desc">
-              <strong>Botón Compartir</strong>: En la barra inferior de Safari, pulsa el botón de compartir (cuadrado con la flecha hacia arriba <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>).
-            </div>
-          </div>
-          <div class="ios-step-item">
-            <div class="ios-step-num">4</div>
-            <div class="ios-step-desc">
-              <strong>"Añadir a pantalla de inicio"</strong>: Desliza hacia abajo en el menú y pulsa en <b style="color: var(--accent-lime);">"Añadir a pantalla de inicio"</b>.
-            </div>
-          </div>
-          <div class="ios-step-item">
-            <div class="ios-step-num">5</div>
-            <div class="ios-step-desc">
-              <strong>Pulsa "Añadir"</strong>: ¡Listo! El icono con el logo de Fit360 aparecerá en tu iPhone. Se abrirá a pantalla completa y sin conexión.
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-primary btn-block" onclick="App.closeIosModal()">
-          Entendido, ¡gracias! ✨
-        </button>
       </div>
     </div>
   </div>
 
   <!-- ============================================== -->
-  <!-- MODAL: GUÍA INTERACTIVA DE UX & SINCRONIZACIÓN -->
-  <!-- (Salud, Fitness, Báscula Renpho & Calendario)  -->
+  <!-- MODAL: PREVISUALIZACIÓN DE IMPORTACIÓN         -->
   <!-- ============================================== -->
-  <div class="modal-overlay" id="onboardingGuideModal">
-    <div class="modal-card onboarding-modal-card">
-      
-      <!-- Modal Header -->
-      <div class="onboarding-header">
+  <div class="modal-overlay" id="modalImportPreview" style="align-items: center;">
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="onboarding-step-pill" id="onboardingStepPill">Paso 1 de 5</span>
-          <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;" id="onboardingStepName">Bienvenida</span>
+          <span id="importPreviewTypeBadge" class="pill pill-cyan">Rutina</span>
+          <h3 class="modal-title">Previsualizar</h3>
         </div>
-        <button class="icon-btn" onclick="App.closeOnboardingGuide()" aria-label="Cerrar guía">✕</button>
-      </div>
-
-      <!-- Modal Body (Slides) -->
-      <div class="onboarding-body">
-
-        <!-- SLIDE 0: Bienvenida & Valores a 0 -->
-        <div class="onboarding-slide active" id="guideSlide-0">
-          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
-            🎯
-          </div>
-          <h3 class="onboarding-slide-title">¡Bienvenido a Fit360!</h3>
-          <p class="onboarding-slide-subtitle">
-            Tu centro de control diario de nutrición, fuerza, cardio y pesajes. 100% privado, sin suscripciones y autónomo en tu iPhone.
-          </p>
-
-          <div style="background: rgba(0, 245, 155, 0.08); border: 1px solid rgba(0, 245, 155, 0.25); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-size: 1.1rem;">✨</span>
-              <strong style="font-size: 0.86rem; color: var(--accent-lime);">Tus valores inician limpios a 0</strong>
-            </div>
-            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
-              Al descargar la app, todas las calorías consumidas, calorías quemadas, entrenamientos y pesajes comienzan en blanco para que reflejen tu progreso real desde hoy.
-            </p>
-          </div>
-
-          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px;">
-            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 8px;">
-              ¿Tenías datos de prueba anteriores en tu teléfono?
-            </span>
-            <button class="btn btn-secondary btn-block" style="font-size: 0.8rem; padding: 7px 12px;" onclick="App.cleanDataAndNotify()">
-              🧹 Limpiar todos los registros a 0 ahora
-            </button>
-          </div>
-
-          <p style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-            👉 Pulsa en <b>Siguiente</b> para ver cómo conectar tu báscula Renpho y Apple Salud en menos de 1 minuto.
-          </p>
-        </div>
-
-        <!-- SLIDE 1: Báscula Digital Renpho -->
-        <div class="onboarding-slide" id="guideSlide-1">
-          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
-            ⚖️
-          </div>
-          <h3 class="onboarding-slide-title">Báscula Digital Renpho</h3>
-          <p class="onboarding-slide-subtitle">
-            Cómo sincronizar tu peso y % de grasa corporal en Fit360 de forma automática y precisa.
-          </p>
-
-          <!-- Flow Diagram -->
-          <div class="onboarding-flow-diagram">
-            <div class="onboarding-flow-node">
-              <div class="node-icon">⚖️</div>
-              <span class="node-name">Báscula</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon">📱</div>
-              <span class="node-name">App Renpho</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon">❤️</div>
-              <span class="node-name">Apple Salud</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon" style="border-color: var(--accent-cyan); background: rgba(0, 242, 254, 0.15);">⚡</div>
-              <span class="node-name" style="color: var(--accent-cyan);">Fit360</span>
-            </div>
-          </div>
-
-          <!-- Step by Step -->
-          <div class="onboarding-instruction-list">
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">1</div>
-              <div class="onboarding-inst-text">
-                Abre la app <strong>Renpho</strong> en tu iPhone.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">2</div>
-              <div class="onboarding-inst-text">
-                Ve a <strong>Mi Cuenta</strong> (abajo a la derecha) > <strong>Ajustes</strong> (o <em>Apps de terceros</em>) > <strong>Apple Salud</strong>.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">3</div>
-              <div class="onboarding-inst-text">
-                Activa los permisos de <strong>Peso</strong> y <strong>Porcentaje de Grasa</strong>.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">4</div>
-              <div class="onboarding-inst-text">
-                Pésate en tu báscula Renpho. El pesaje llegará a Apple Salud automáticamente por Bluetooth.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">5</div>
-              <div class="onboarding-inst-text">
-                En Fit360, pulsa <strong>"⚡ Sincronizar"</strong> en la tarjeta de Báscula del Dashboard. ¡Tu peso, grasa y variación se actualizarán solos!
-              </div>
-            </div>
-          </div>
-
-          <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 8px 12px; font-size: 0.76rem; color: var(--text-secondary);">
-            💡 <b>¿De viaje o sin báscula?</b> Tienes la pestaña <b>"✍️ Manual"</b> para teclear tu peso en 2 segundos o ajustar con botones de ±0.1 kg.
-          </div>
-        </div>
-
-        <!-- SLIDE 2: Apple Fitness & Apple Watch -->
-        <div class="onboarding-slide" id="guideSlide-2">
-          <div class="onboarding-hero-icon" style="background: rgba(250, 17, 79, 0.12); border-color: rgba(250, 17, 79, 0.35);">
-            ⌚
-          </div>
-          <h3 class="onboarding-slide-title">Apple Fitness & Actividad</h3>
-          <p class="onboarding-slide-subtitle">
-            Tus 3 anillos (Moverse, Ejercicio, De pie), pasos y calorías quemadas en tiempo real.
-          </p>
-
-          <!-- Flow Diagram -->
-          <div class="onboarding-flow-diagram">
-            <div class="onboarding-flow-node">
-              <div class="node-icon">⌚</div>
-              <span class="node-name">Apple Watch</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon">🔴</div>
-              <span class="node-name">App Fitness</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon">❤️</div>
-              <span class="node-name">Apple Salud</span>
-            </div>
-            <span class="onboarding-flow-arrow">➔</span>
-            <div class="onboarding-flow-node">
-              <div class="node-icon" style="border-color: #fa114f; background: rgba(250, 17, 79, 0.15);">⚡</div>
-              <span class="node-name" style="color: #ff5277;">Fit360</span>
-            </div>
-          </div>
-
-          <!-- Step by Step -->
-          <div class="onboarding-instruction-list">
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">1</div>
-              <div class="onboarding-inst-text">
-                Tanto si llevas Apple Watch como si caminas con tu iPhone en el bolsillo, tus pasos y calorías activas se guardan en la app <strong>Fitness</strong>.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">2</div>
-              <div class="onboarding-inst-text">
-                En Fit360, pulsa el botón <strong>"Sincronizar"</strong> en la tarjeta de Apple Fitness en el Dashboard.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">3</div>
-              <div class="onboarding-inst-text">
-                <strong>Balance Calórico Inteligente</strong>: Las calorías activas quemadas se sumarán a tu balance diario para recalcular exactamente cuántas calorías puedes comer.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SLIDE 3: Permisos en Apple Salud (iPhone) -->
-        <div class="onboarding-slide" id="guideSlide-3">
-          <div class="onboarding-hero-icon" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
-            ❤️
-          </div>
-          <h3 class="onboarding-slide-title">Permisos en Apple Salud</h3>
-          <p class="onboarding-slide-subtitle">
-            Cómo dar acceso a Fit360 para leer los datos de tu báscula y actividad en tu iPhone.
-          </p>
-
-          <div class="onboarding-instruction-list">
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">1</div>
-              <div class="onboarding-inst-text">
-                La primera vez que pulses <strong>"Sincronizar"</strong>, iOS mostrará la pantalla oficial del sistema de Apple Salud.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">2</div>
-              <div class="onboarding-inst-text">
-                Pulsa en <strong>"Activar todas"</strong> (Turn On All) en la parte superior y luego en <strong>"Permitir"</strong> (esquina superior derecha).
-              </div>
-            </div>
-          </div>
-
-          <div style="background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: var(--radius-md); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span>⚠️</span>
-              <strong style="font-size: 0.84rem; color: #fb923c;">¿No te aparece la ventana o diste a 'No'?</strong>
-            </div>
-            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
-              Ve en tu iPhone a: <b>Ajustes</b> > <b>Privacidad y seguridad</b> > <b>Salud</b> > <b>Fit360</b> y activa en verde todos los permisos (Peso, Grasa corporal y Energía activa).
-            </p>
-          </div>
-        </div>
-
-        <!-- SLIDE 4: Calendario y Navegación Manual -->
-        <div class="onboarding-slide" id="guideSlide-4">
-          <div class="onboarding-hero-icon" style="background: rgba(0, 242, 254, 0.12); border-color: rgba(0, 242, 254, 0.35);">
-            📅
-          </div>
-          <h3 class="onboarding-slide-title">Calendario y Navegación</h3>
-          <p class="onboarding-slide-subtitle">
-            Despliega el calendario nativo para elegir cualquier día de forma directa y cómoda.
-          </p>
-
-          <div class="onboarding-instruction-list">
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">1</div>
-              <div class="onboarding-inst-text">
-                <strong>Toca directamente la fecha en la cabecera ("Hoy 📅")</strong>: Se abrirá el selector de calendario nativo de tu iPhone para elegir cualquier día sin depender de avanzar flecha por flecha.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">2</div>
-              <div class="onboarding-inst-text">
-                Usa las flechas <strong>‹</strong> y <strong>›</strong> cuando solo quieras moverte un día adelante o atrás.
-              </div>
-            </div>
-            <div class="onboarding-inst-row">
-              <div class="onboarding-inst-num">3</div>
-              <div class="onboarding-inst-text">
-                Toca el botón flotante circular <strong>+</strong> abajo en el centro para registrar comidas, series de fuerza o cardio en cualquier momento.
-              </div>
-            </div>
-          </div>
-
-          <div style="background: rgba(0, 245, 155, 0.08); border: 1px solid rgba(0, 245, 155, 0.25); border-radius: var(--radius-md); padding: 10px 12px; margin-top: 10px;">
-            <p style="font-size: 0.8rem; color: var(--accent-lime); font-weight: 700; margin: 0;">
-              🚀 ¡Todo configurado! Pulsa el botón inferior para empezar.
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="onboarding-footer">
-        <button class="btn btn-secondary" id="onboardingPrevBtn" onclick="App.prevOnboardingStep()" style="padding: 7px 14px; font-size: 0.8rem;">
-          ← Anterior
-        </button>
-
-        <div class="onboarding-dots" id="onboardingDotsContainer">
-          <div class="onboarding-dot active" onclick="App.setGuideStep(0)"></div>
-          <div class="onboarding-dot" onclick="App.setGuideStep(1)"></div>
-          <div class="onboarding-dot" onclick="App.setGuideStep(2)"></div>
-          <div class="onboarding-dot" onclick="App.setGuideStep(3)"></div>
-          <div class="onboarding-dot" onclick="App.setGuideStep(4)"></div>
-        </div>
-
-        <button class="btn btn-primary" id="onboardingNextBtn" onclick="App.nextOnboardingStep()" style="padding: 7px 16px; font-size: 0.8rem;">
-          Siguiente →
+        <button class="icon-btn" onclick="App.closeModal('modalImportPreview')" aria-label="Cerrar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
+      <div class="modal-body" style="padding: 12px 18px 20px;">
+        <div style="margin-bottom: 12px;">
+          <h4 id="importPreviewTitle" style="color: #fff; font-size: 1.1rem; margin-bottom: 2px;">Título</h4>
+          <span id="importPreviewAuthor" style="font-size: 0.74rem; color: var(--accent-cyan);">Creado por Amigo</span>
+        </div>
+
+        <div id="importPreviewDetails" style="max-height: 260px; overflow-y: auto; margin-bottom: 16px;">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btnConfirmImport" onclick="Social.confirmPendingImport()">
+          📥 Confirmar e Importar
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2286,16 +3180,27 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="js/exercises-db.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/nutrition.js"></script>
-  <script src="js/gym.js"></script>
-  <script src="js/cardio.js"></script>
-  <script src="js/analytics.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/health-sync.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/config.js?v=1"></script>
+  <script src="js/security.js?v=1"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js?v=1"></script>
+  <script src="js/auth.js?v=1"></script>
+  <script src="js/onboarding.js?v=1"></script>
+  <script src="js/exercises-db.js?v=2"></script>
+  <script src="js/storage.js?v=2"></script>
+  <script src="js/dashboard.js?v=2"></script>
+  <script src="js/nutrition.js?v=2"></script>
+  <script src="js/gym.js?v=2"></script>
+  <script src="js/cardio.js?v=2"></script>
+  <script src="js/analytics.js?v=2"></script>
+  <script src="js/settings.js?v=2"></script>
+  <script src="js/health-sync.js?v=2"></script>
+  <script src="js/ble-scale.js?v=1"></script>
+  <script src="js/qr-generator.js?v=2"></script>
+  <script src="js/social.js?v=2"></script>
+  <script src="js/ads.js?v=1"></script>
+  <script src="js/app.js?v=2"></script>
+  <script src="js/barcode-scanner.js?v=1"></script>
 
 </body>
 </html>

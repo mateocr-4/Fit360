@@ -190,7 +190,7 @@ const HealthSync = {
       
       // Diagnóstico detallado
       if (errDetail.toLowerCase().includes('entitlement') || errDetail.toLowerCase().includes('permission') || errDetail.toLowerCase().includes('not available')) {
-        App.showToast('⚠️ Apple restringe HealthKit en cuentas gratuitas de Sideloadly. Usa el Registro Rápido o CSV.', 'warning');
+        App.showToast('⚠️ Permiso de Apple Salud no concedido. Puedes habilitarlo en Ajustes > Salud > Acceso a datos.', 'warning');
       } else {
         App.showToast(`⚠️ ${errDetail || 'No se pudo acceder a Apple Salud'}. Usa el registro rápido.`, 'warning');
       }
@@ -232,6 +232,52 @@ const HealthSync = {
     this.onWeightUpdated(log);
     App.showToast(`✅ Pesaje guardado: ${log.weight} kg`, 'success');
     this.closeModal();
+  },
+
+  // Guardar peso programáticamente (invocado desde BleScale o sincronizaciones externas)
+  async saveWeight(weightKg, fatPct = null, source = 'ble_scale') {
+    const weightNum = Math.round(Number(weightKg) * 10) / 10;
+    const fatNum = fatPct ? Math.round(Number(fatPct) * 10) / 10 : null;
+
+    // 1. Guardar en Storage local
+    const log = Storage.saveWeightLog({
+      weight: weightNum,
+      fatPct: fatNum,
+      date: Storage.formatDate(),
+      time: new Date().toTimeString().slice(0, 5),
+      timing: 'fasting',
+      source: source,
+      notes: 'Sincronizado vía Báscula Inteligente BLE'
+    });
+
+    // 2. Escribir en Apple HealthKit nativo si está disponible
+    try {
+      const plugin = this.getHealthKitPlugin();
+      if (this.isNativeHealthKitAvailable() && plugin && typeof plugin.saveSample === 'function') {
+        const now = new Date().toISOString();
+        await plugin.saveSample({
+          sampleName: 'weight',
+          value: weightNum,
+          startDate: now,
+          endDate: now
+        });
+
+        if (fatNum) {
+          await plugin.saveSample({
+            sampleName: 'bodyFat',
+            value: fatNum > 1 ? fatNum / 100 : fatNum,
+            startDate: now,
+            endDate: now
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[HealthSync] Error escribiendo en HealthKit nativo:', e);
+    }
+
+    // 3. Notificar a Dashboard y Perfil
+    this.onWeightUpdated(log);
+    return log;
   },
 
   // Acción cuando se actualiza el peso

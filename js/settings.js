@@ -30,18 +30,29 @@ const Settings = {
 
   saveGoals() {
     const settings = Storage.getSettings();
+
+    // Sanitize numeric inputs with bounds checking
+    const sanitizeNum = window.Security
+      ? (v, min, max, def) => Security.sanitizeNumber(v, min, max, def)
+      : (v, min, max, def) => { const n = Number(v); return isNaN(n) ? def : Math.max(min, Math.min(max, n)); };
+
     settings.goals = {
-      kcal: Number(document.getElementById('goalKcalInput').value) || 2300,
-      protein: Number(document.getElementById('goalProteinInput').value) || 160,
-      carbs: Number(document.getElementById('goalCarbsInput').value) || 260,
-      fat: Number(document.getElementById('goalFatInput').value) || 65,
-      appleMoveKcal: Number(document.getElementById('goalAppleMoveInput').value) || 650
+      kcal: sanitizeNum(document.getElementById('goalKcalInput').value, 500, 10000, 2300),
+      protein: sanitizeNum(document.getElementById('goalProteinInput').value, 0, 1000, 160),
+      carbs: sanitizeNum(document.getElementById('goalCarbsInput').value, 0, 2000, 260),
+      fat: sanitizeNum(document.getElementById('goalFatInput').value, 0, 500, 65),
+      appleMoveKcal: sanitizeNum(document.getElementById('goalAppleMoveInput').value, 0, 5000, 650)
     };
 
+    // Sanitize profile name to prevent XSS
+    const sanitizeStr = window.Security
+      ? (s, max) => Security.sanitizeInput(s, max)
+      : (s) => String(s).replace(/<[^>]*>/g, '').trim();
+
     settings.profile = {
-      name: document.getElementById('profileNameInput').value.trim() || 'Mateo',
-      weight: Number(document.getElementById('profileWeightInput').value) || 76,
-      height: Number(document.getElementById('profileHeightInput').value) || 178
+      name: sanitizeStr(document.getElementById('profileNameInput').value, 50) || 'Mateo',
+      weight: sanitizeNum(document.getElementById('profileWeightInput').value, 20, 300, 76),
+      height: sanitizeNum(document.getElementById('profileHeightInput').value, 50, 280, 178)
     };
 
     Storage.saveSettings(settings);

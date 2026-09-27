@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fit360-v5';
+const CACHE_NAME = 'fit360-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const ASSETS = [
   './css/components.css',
   './css/animations.css',
   './js/chart.min.js',
+  './js/security.js',
   './js/storage.js',
   './js/exercises-db.js',
   './js/dashboard.js',
@@ -37,6 +38,8 @@ const ASSETS = [
   './js/analytics.js',
   './js/settings.js',
   './js/health-sync.js',
+  './js/qr-generator.js',
+  './js/social.js',
   './js/app.js'
 ];
 
@@ -68,15 +71,25 @@ self.addEventListener('fetch', (event) => {
   // Solo interceptar peticiones GET
   if (event.request.method !== 'GET') return;
 
+  // Network-first con fallback a cache para desarrollo y offline garantizado
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Fallback si no hay conexión y no está en caché
-        return caches.match('./index.html');
-      });
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return caches.match('./index.html');
+        });
+      })
   );
 });

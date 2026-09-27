@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>es</string>
 	<key>CFBundleDisplayName</key>
-        <string>Fit360</string>
+	<string>Fit360</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -28,26 +28,210 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- Forzar Tema Oscuro Nativo (Dark Luxury) - Evita parpadeos blancos en arranque -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+
+	<!-- Permisos de Acceso a Hardware, Salud y Bluetooth -->
+	<key>NSCameraUsageDescription</key>
+	<string>Fit360 requiere acceso a la cámara para escanear los códigos de barras de alimentos y registrar su información nutricional.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Fit360 necesita acceder a tus datos de salud (peso de báscula Renpho, grasa corporal y calorías quemadas) para sincronizar tu progreso automáticamente.</string>
+	<string>Fit360 consulta tu masa corporal (peso), calorías activas quemadas, recuento de pasos y energía de la dieta para calcular con precisión tu balance calórico diario y evolución física.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Fit360 puede registrar tus entrenamientos y calorías en Apple Salud.</string>
+	<string>Fit360 permite registrar y sincronizar tu masa corporal, entrenamientos y energía calórica consumida en Apple Salud para mantener tus registros centralizados.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Fit360 requiere acceso a Bluetooth para detectar y sincronizar de forma inalámbrica las mediciones de tu báscula inteligente (como básculas Renpho o compatibles).</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Fit360 requiere acceso a Bluetooth para comunicarse con tu báscula inteligente y sincronizar pesajes automáticamente.</string>
+
+	<!-- Permiso de Publicidad ATT (App Tracking Transparency - Guideline 5.1.2) -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Fit360 solicita este identificador para ofrecerte anuncios relevantes que financian el acceso gratuito. Conforme a la Directriz 27.4 de Apple, tus datos biométricos y de Apple Salud NUNCA se recopilan ni se comparten con redes publicitarias.</string>
+
+	<!-- Configuración de Google AdMob (Google Mobile Ads SDK) -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<!-- Google AdMob Primary -->
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>4fzdc2evr5.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>4pfyvq9l8r.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>2fnua5tdw4.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>ydx93a7ass.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>5a6flpkh64.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>p78axxw29g.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v72qych544.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>ludvb6z3bs.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cp8zt743nn.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>3sh42y64q3.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>c6k4g5qg8m.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>s39g8k73mm.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>3qy4746246.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>hs6bdukanm.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>mlmmfzh3r3.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v4nxqhlyqp.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>wzmmz9fp6w.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>su67r6k2v3.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>yclnxrl5pm.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>7ug5zh24hu.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>gta9lk7p23.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>pwa73g5rt2.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>22mmun2rn5.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>446h53uz2q.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>8s468mfl3y.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>av6w8kgt66.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>klf5c3l5u5.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>ppxm28t8ap.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>424m5254lk.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>ecpz2srf59.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>uw77j3544d.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>e5fvk9hs82.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>zv9vp79kmn.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>zq4928m33x.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>3rd42ekr43.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>3qcr597p9d.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>wg4vffqqtu.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>6xzpu9s2p8.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>

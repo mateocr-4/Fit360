@@ -805,6 +805,9 @@ const Gym = {
             </div>
 
             <div style="display: flex; gap: 4px; align-items: center;">
+              <button class="gym-move-btn" onclick="Social.shareCustomRoutineById('${r.id}')" title="Compartir rutina con amigos" style="color: var(--accent-lime);">
+                📤
+              </button>
               ${r.isCustom ? `
                 <button class="gym-move-btn" onclick="Gym.openRoutineEditorModal('${r.id}')" title="Editar rutina" style="color: var(--accent-cyan);">
                   ✏️
