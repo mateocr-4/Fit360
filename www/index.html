@@ -208,41 +208,56 @@
 
     <!-- Top Header -->
     <header class="app-header">
-      <div class="header-left">
-        <button class="icon-btn" id="btnOpenSidebar" onclick="App.toggleSidebar()" aria-label="Menú lateral">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="16" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
-        <div class="brand-badge" onclick="App.navigateTo('dashboard')">
-          <span>Fit360</span>
-          <span class="brand-pill">Pro</span>
+      <!-- Ambient Top Bar: Hora, Tiempo, Temperatura -->
+      <div class="top-ambient-bar" id="topAmbientBar">
+        <div class="ambient-left">
+          <span class="ambient-clock" id="ambientClock">--:--</span>
+        </div>
+        <div class="ambient-right" id="ambientWeatherPill" onclick="Weather.openModal()" title="Ver pronóstico y sugerencias para entrenar">
+          <span class="ambient-weather-icon" id="ambientWeatherIcon">🌤️</span>
+          <span class="ambient-weather-desc" id="ambientWeatherDesc">Tiempo</span>
+          <span class="ambient-weather-temp" id="ambientWeatherTemp">--°C</span>
+          <span class="ambient-weather-loc" id="ambientWeatherLoc"></span>
         </div>
       </div>
 
-      <!-- Header Actions -->
-      <div class="header-right" style="display: flex; align-items: center; gap: 6px;">
-        <!-- Date Navigator with Direct Native Calendar Picker -->
-        <div class="date-selector">
-          <button type="button" class="date-nav-arrow" onclick="App.changeDate(-1);" aria-label="Día anterior" title="Día anterior">‹</button>
-          <div class="date-center-btn" title="Toca para abrir el calendario">
-            <span id="currentDateLabel">Hoy 📅</span>
-            <input type="date" id="headerDatePicker" onchange="App.setDate(this.value)" aria-label="Elegir fecha en el calendario">
+      <div class="app-header-main">
+        <div class="header-left">
+          <button class="icon-btn" id="btnOpenSidebar" onclick="App.toggleSidebar()" aria-label="Menú lateral">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="16" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="brand-badge" onclick="App.navigateTo('dashboard')">
+            <span>Fit360</span>
+            <span class="brand-pill">Pro</span>
           </div>
-          <button type="button" class="date-nav-arrow" onclick="App.changeDate(1);" aria-label="Día siguiente" title="Día siguiente">›</button>
         </div>
 
-        <!-- Help / Sync Guide Button -->
-        <button class="icon-btn" onclick="App.openOnboardingGuide(0)" aria-label="Guía de sincronización" title="Guía: Salud, Fitness y Renpho" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.3); color: var(--accent-cyan);">
-          ❓
-        </button>
+        <!-- Header Actions -->
+        <div class="header-right" style="display: flex; align-items: center; gap: 6px;">
+          <!-- Date Navigator with Direct Native Calendar Picker -->
+          <div class="date-selector">
+            <button type="button" class="date-nav-arrow" onclick="App.changeDate(-1);" aria-label="Día anterior" title="Día anterior">‹</button>
+            <div class="date-center-btn" title="Toca para abrir el calendario">
+              <span id="currentDateLabel">Hoy 📅</span>
+              <input type="date" id="headerDatePicker" onchange="App.setDate(this.value)" aria-label="Elegir fecha en el calendario">
+            </div>
+            <button type="button" class="date-nav-arrow" onclick="App.changeDate(1);" aria-label="Día siguiente" title="Día siguiente">›</button>
+          </div>
 
-        <!-- Cloud Account & Sync Button -->
-        <button class="icon-btn" onclick="Auth.showAuthScreen()" aria-label="Mi Cuenta y Sincronización" title="Cuenta en la Nube & Sync" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.08); border-color: rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
-          ☁️
-        </button>
+          <!-- Help / Sync Guide Button -->
+          <button class="icon-btn" onclick="App.openOnboardingGuide(0)" aria-label="Guía de sincronización" title="Guía: Salud, Fitness y Renpho" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.3); color: var(--accent-cyan);">
+            ❓
+          </button>
+
+          <!-- Cloud Account & Sync Button -->
+          <button class="icon-btn" onclick="Auth.showAuthScreen()" aria-label="Mi Cuenta y Sincronización" title="Cuenta en la Nube & Sync" style="width: 38px; height: 38px; border-radius: var(--radius-sm); font-size: 1.05rem; background: rgba(0, 242, 254, 0.08); border-color: rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
+            ☁️
+          </button>
+        </div>
       </div>
     </header>
 
@@ -276,12 +291,31 @@
 
       <!-- Sidebar Navigation Menu -->
       <ul class="sidebar-menu">
+        <!-- CATEGORÍA: PRINCIPAL -->
+        <li class="sidebar-category-header" role="presentation">
+          <span class="category-divider-line"></span>
+          <span class="category-divider-text">Principal</span>
+          <span class="category-divider-line"></span>
+        </li>
         <li>
           <a class="sidebar-link active" data-view="dashboard" onclick="App.navigateTo('dashboard')">
             <span class="menu-icon">🏠</span>
             <span>Dashboard General</span>
             <span class="menu-badge">Inicio</span>
           </a>
+        </li>
+        <li>
+          <a class="sidebar-link" data-view="analytics" onclick="App.navigateTo('analytics')">
+            <span class="menu-icon">📊</span>
+            <span>Progreso & Estadísticas</span>
+          </a>
+        </li>
+
+        <!-- CATEGORÍA: NUTRICIÓN -->
+        <li class="sidebar-category-header" role="presentation">
+          <span class="category-divider-line"></span>
+          <span class="category-divider-text">Nutrición</span>
+          <span class="category-divider-line"></span>
         </li>
         <li>
           <a class="sidebar-link" data-view="nutrition" onclick="App.navigateTo('nutrition')">
@@ -303,6 +337,13 @@
             <span class="menu-badge" style="background: rgba(0,245,155,0.15); color: var(--accent-lime);">Nuevo</span>
           </a>
         </li>
+
+        <!-- CATEGORÍA: ENTRENAMIENTO -->
+        <li class="sidebar-category-header" role="presentation">
+          <span class="category-divider-line"></span>
+          <span class="category-divider-text">Entrenamiento</span>
+          <span class="category-divider-line"></span>
+        </li>
         <li>
           <a class="sidebar-link" data-view="gym" onclick="App.navigateTo('gym')">
             <span class="menu-icon">🏋️‍♂️</span>
@@ -315,10 +356,45 @@
             <span>Cardio & Máquinas</span>
           </a>
         </li>
+
+        <!-- CATEGORÍA: DISPOSITIVOS & SALUD -->
+        <li class="sidebar-category-header" role="presentation">
+          <span class="category-divider-line"></span>
+          <span class="category-divider-text">Dispositivos & Salud</span>
+          <span class="category-divider-line"></span>
+        </li>
         <li>
-          <a class="sidebar-link" data-view="analytics" onclick="App.navigateTo('analytics')">
-            <span class="menu-icon">📊</span>
-            <span>Progreso & Estadísticas</span>
+          <a class="sidebar-link" onclick="Nutrition.openAppleFitnessModal()" style="background: rgba(250,17,79,0.1); border-color: rgba(250,17,79,0.3); color: #ff5277;">
+            <span class="menu-icon">⌚</span>
+            <span>Apple Fitness Sync</span>
+          </a>
+        </li>
+        <li>
+          <a class="sidebar-link" onclick="HealthSync.openModal()" style="background: rgba(0, 242, 254, 0.09); border-color: rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
+            <span class="menu-icon">⚖️</span>
+            <span>Báscula Renpho & Peso</span>
+            <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">Sync</span>
+          </a>
+        </li>
+        <li>
+          <a class="sidebar-link" onclick="App.closeSidebar(); App.openOnboardingGuide(0);" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.22); color: var(--accent-cyan);">
+            <span class="menu-icon">📖</span>
+            <span>Guía de Sincronización</span>
+            <span class="chip chip-lime" style="font-size: 0.65rem; margin-left: auto;">Salud & Renpho</span>
+          </a>
+        </li>
+
+        <!-- CATEGORÍA: COMUNIDAD & AJUSTES -->
+        <li class="sidebar-category-header" role="presentation">
+          <span class="category-divider-line"></span>
+          <span class="category-divider-text">Comunidad & Ajustes</span>
+          <span class="category-divider-line"></span>
+        </li>
+        <li>
+          <a class="sidebar-link" data-view="social" onclick="App.navigateTo('social')">
+            <span class="menu-icon">👥</span>
+            <span>Amigos & Rutinas</span>
+            <span class="menu-badge" style="background: rgba(0,245,155,0.15); color: var(--accent-lime);">Social</span>
           </a>
         </li>
         <li>
@@ -328,40 +404,13 @@
           </a>
         </li>
         <li>
-          <a class="sidebar-link" data-view="social" onclick="App.navigateTo('social')">
-            <span class="menu-icon">👥</span>
-            <span>Amigos & Rutinas</span>
-            <span class="menu-badge" style="background: rgba(0,245,155,0.15); color: var(--accent-lime);">Social</span>
-          </a>
-        </li>
-        <li style="margin-top: 10px;">
-          <a class="sidebar-link" onclick="Nutrition.openAppleFitnessModal()" style="background: rgba(250,17,79,0.1); border-color: rgba(250,17,79,0.3); color: #ff5277;">
-            <span class="menu-icon">⌚</span>
-            <span>Apple Fitness Sync</span>
-          </a>
-        </li>
-        <li style="margin-top: 6px;">
-          <a class="sidebar-link" onclick="HealthSync.openModal()" style="background: rgba(0, 242, 254, 0.09); border-color: rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
-            <span class="menu-icon">⚖️</span>
-            <span>Báscula Renpho & Peso</span>
-            <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">Sync</span>
-          </a>
-        </li>
-        <li style="margin-top: 6px;">
-          <a class="sidebar-link" onclick="App.closeSidebar(); App.openOnboardingGuide(0);" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.22); color: var(--accent-cyan);">
-            <span class="menu-icon">📖</span>
-            <span>Guía de Sincronización</span>
-            <span class="chip chip-lime" style="font-size: 0.65rem; margin-left: auto;">Salud & Renpho</span>
-          </a>
-        </li>
-        <li style="margin-top: 8px;">
           <a class="sidebar-link" onclick="App.closeSidebar(); Auth.showAuthScreen();" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); color: var(--accent-cyan);">
             <span class="menu-icon">☁️</span>
             <span>Cuenta en la Nube & Sync</span>
             <span class="chip chip-cyan" style="font-size: 0.65rem; margin-left: auto;">Supabase</span>
           </a>
         </li>
-        <li id="sidebarInstallPwa" style="display: none; margin-top: 6px;">
+        <li id="sidebarInstallPwa" style="display: none;">
           <a class="sidebar-link" onclick="App.installPwa()" style="background: rgba(0,245,155,0.15); border-color: rgba(0,245,155,0.3); color: var(--accent-lime);">
             <span class="menu-icon">📲</span>
             <span>Instalar PWA (Android/PC)</span>
@@ -619,6 +668,9 @@
             <h2 style="font-size: 1.4rem;">Nutrición & Dieta</h2>
           </div>
           <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+            <button class="btn btn-secondary btn-sm" onclick="Nutrition.openCopyDayModal()" style="font-size: 0.78rem;" title="Copiar comidas de otro día">
+              📅 Copiar Día
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="Nutrition.openMyRecipes()" style="font-size: 0.78rem;">
               🍳 Mis Recetas
             </button>
@@ -1370,18 +1422,77 @@
         <button class="icon-btn" onclick="App.closeModal('foodModal')">✕</button>
       </div>
 
-      <!-- Selector de Modo: Alimento vs Receta -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
-        <button type="button" class="pill pill-cyan active" id="foodModalTabAlimento" onclick="Nutrition.switchFoodModalMode('alimento')" style="padding: 7px 10px; font-weight: 700; cursor: pointer; text-align: center; justify-content: center;">
-          🥗 Alimento / Gramos
+      <!-- Selector de Modo: Rápido vs Manual vs Recetas -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 12px;">
+        <button type="button" class="pill pill-cyan active" id="foodModalTabRapido" onclick="Nutrition.switchFoodModalMode('rapido')" style="padding: 7px 4px; font-weight: 700; font-size: 0.78rem; cursor: pointer; text-align: center; justify-content: center;">
+          ✨ Rápido
         </button>
-        <button type="button" class="pill pill-cyan" id="foodModalTabReceta" onclick="Nutrition.switchFoodModalMode('receta')" style="padding: 7px 10px; font-weight: 700; cursor: pointer; text-align: center; justify-content: center; opacity: 0.7;">
-          🍳 Mis Recetas
+        <button type="button" class="pill pill-cyan" id="foodModalTabAlimento" onclick="Nutrition.switchFoodModalMode('alimento')" style="padding: 7px 4px; font-weight: 700; font-size: 0.78rem; cursor: pointer; text-align: center; justify-content: center; opacity: 0.7;">
+          🥗 Gramos
+        </button>
+        <button type="button" class="pill pill-cyan" id="foodModalTabReceta" onclick="Nutrition.switchFoodModalMode('receta')" style="padding: 7px 4px; font-weight: 700; font-size: 0.78rem; cursor: pointer; text-align: center; justify-content: center; opacity: 0.7;">
+          🍳 Recetas
         </button>
       </div>
 
+      <!-- MODO 0: Rápido (Texto Libre + Favoritos + Recientes) -->
+      <div id="foodModalContentRapido">
+        <!-- Texto Libre Parser -->
+        <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 10px; margin-bottom: 12px;">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <span class="form-label" style="margin-bottom: 0; color: var(--accent-cyan); font-weight: 700;">💬 Registro por Texto Libre</span>
+            <span style="font-size: 0.68rem; color: var(--text-muted);">100% Offline</span>
+          </div>
+          <div style="position: relative;">
+            <textarea id="foodFreeTextInput" class="form-control" rows="2" placeholder="Ej: 2 huevos y tostada con aguacate, o 200g de pollo y arroz..." style="font-size: 0.85rem; resize: none;"></textarea>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="Nutrition.parseFreeText()" style="flex: 1; font-weight: 700; justify-content: center; font-size: 0.76rem;">
+              ⚡ Interpretar Texto
+            </button>
+            <button type="button" class="pill pill-cyan" onclick="Nutrition.clearFreeTextInput()" style="cursor: pointer; padding: 4px 8px; font-size: 0.72rem;">
+              Limpiar
+            </button>
+          </div>
+
+          <!-- Contenedor de confirmación de items parseados -->
+          <div id="foodParsedResultsContainer" style="display: none; margin-top: 10px; border-top: 1px dashed rgba(0, 242, 254, 0.3); padding-top: 10px;">
+            <div class="flex-between" style="margin-bottom: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">Alimentos detectados:</span>
+              <span id="foodParsedSummaryBadge" class="pill pill-cyan" style="font-size: 0.68rem;">0 kcal</span>
+            </div>
+            <div id="foodParsedItemsList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; margin-bottom: 8px;"></div>
+            <button type="button" class="btn btn-primary btn-block btn-sm" id="btnConfirmParsedFoods" onclick="Nutrition.confirmParsedFoods()">
+              + Registrar Alimentos
+            </button>
+          </div>
+        </div>
+
+        <!-- Favoritos Rápidos (★) -->
+        <div style="margin-bottom: 12px;">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <span class="form-label" style="margin-bottom: 0; color: #ffd700; font-weight: 700;">★ Mis Favoritos</span>
+            <span id="favFoodsCountBadge" style="font-size: 0.7rem; color: var(--text-muted);">0 guardados</span>
+          </div>
+          <div id="quickFavoritesList" style="display: flex; flex-direction: column; gap: 5px; max-height: 140px; overflow-y: auto;">
+            <!-- JS populates -->
+          </div>
+        </div>
+
+        <!-- Recientes Rápidos (🕒) -->
+        <div style="margin-bottom: 8px;">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <span class="form-label" style="margin-bottom: 0; color: var(--accent-cyan); font-weight: 700;">🕒 Recientes</span>
+            <button type="button" class="link-btn" onclick="Nutrition.clearRecents()" style="font-size: 0.68rem; color: var(--text-dim); background: none; border: none; cursor: pointer;">Vaciar</button>
+          </div>
+          <div id="quickRecentsList" style="display: flex; flex-direction: column; gap: 5px; max-height: 160px; overflow-y: auto;">
+            <!-- JS populates -->
+          </div>
+        </div>
+      </div>
+
       <!-- MODO 1: Alimento Individual -->
-      <div id="foodModalContentAlimento">
+      <div id="foodModalContentAlimento" style="display: none;">
         <!-- Search in food presets -->
         <div class="form-group" style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
           <input type="text" class="form-control" placeholder="🔍 Buscar alimento (pollo, arroz, avena, yogur...)" oninput="Nutrition.renderPresetsList(this.value)" style="flex: 1;">
@@ -1494,6 +1605,121 @@
         <div id="foodModalRecipeList" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto;">
           <!-- Inyectado por JS -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: COPIAR DÍA (NUTRICIÓN)                 -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="copyDayModal">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">📅</span>
+          <div>
+            <h3 style="font-size: 1.15rem;">Copiar Nutrición de otro Día</h3>
+            <span style="font-size: 0.75rem; color: var(--accent-cyan);">Repite un día completo en ≤3 toques</span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('copyDayModal')">✕</button>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label class="form-label">Seleccionar fecha de origen:</label>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+          <button type="button" class="pill pill-cyan" onclick="Nutrition.setCopyDayOrigin('yesterday')" style="cursor: pointer; flex: 1; justify-content: center; font-size: 0.75rem; padding: 6px;">Ayer</button>
+          <button type="button" class="pill pill-cyan" onclick="Nutrition.setCopyDayOrigin('last_week')" style="cursor: pointer; flex: 1; justify-content: center; font-size: 0.75rem; padding: 6px;">Mismo día sem. pasada</button>
+        </div>
+        <input type="date" id="copyDayOriginDateInput" class="form-control" onchange="Nutrition.updateCopyDayPreview(this.value)">
+      </div>
+
+      <!-- Preview del día origen -->
+      <div id="copyDayPreviewCard" class="card" style="padding: 12px; margin-bottom: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
+        <div class="flex-between" style="margin-bottom: 8px;">
+          <span style="font-weight: 700; font-size: 0.85rem; color: #fff;">Comidas detectadas:</span>
+          <span id="copyDayPreviewKcal" class="pill pill-lime" style="font-weight: 800; font-size: 0.75rem;">0 kcal</span>
+        </div>
+        <div id="copyDayPreviewDetails" style="font-size: 0.76rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+          <!-- JS fills this -->
+        </div>
+      </div>
+
+      <!-- Modo de copia: Fusionar o Reemplazar -->
+      <div style="margin-bottom: 16px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #fff; cursor: pointer; margin-bottom: 8px;">
+          <input type="radio" name="copyDayMode" value="merge" checked>
+          <span><strong>Fusionar:</strong> Añadir a lo que ya tengas hoy</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">
+          <input type="radio" name="copyDayMode" value="overwrite">
+          <span><strong>Sobrescribir:</strong> Reemplazar la nutrición de hoy</span>
+        </label>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" onclick="Nutrition.confirmCopyDay()">
+        📥 Copiar al Día Actual
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: DETALLES DEL TIEMPO & RECOMENDACIONES    -->
+  <!-- ============================================== -->
+  <div class="modal-overlay" id="weatherModal">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🌤️</span>
+          <div>
+            <h3 style="font-size: 1.15rem;">Tiempo & Entrenamiento</h3>
+            <span style="font-size: 0.75rem; color: var(--accent-cyan);" id="weatherModalCity">Ubicación local</span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="App.closeModal('weatherModal')">✕</button>
+      </div>
+
+      <!-- Hero Weather Card -->
+      <div class="card card-glow-cyan" style="padding: 18px; text-align: center; margin-bottom: 14px; position: relative; overflow: hidden;">
+        <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 6px;" id="weatherModalIcon">☀️</div>
+        <div style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1.1;" id="weatherModalTemp">--°C</div>
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-cyan); margin-top: 4px;" id="weatherModalDesc">Despejado</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div>
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">Sensación</span>
+            <span style="font-size: 0.88rem; font-weight: 700; color: #fff;" id="weatherModalApparent">--°C</span>
+          </div>
+          <div>
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">Humedad</span>
+            <span style="font-size: 0.88rem; font-weight: 700; color: #fff;" id="weatherModalHumidity">--%</span>
+          </div>
+          <div>
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">Viento</span>
+            <span style="font-size: 0.88rem; font-weight: 700; color: #fff;" id="weatherModalWind">-- km/h</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workout Advice Banner -->
+      <div class="card" style="padding: 12px; margin-bottom: 14px; background: rgba(0, 245, 155, 0.05); border: 1px solid rgba(0, 245, 155, 0.2);">
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <span style="font-size: 1.3rem;">⚡</span>
+          <div>
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-lime); text-transform: uppercase; letter-spacing: 0.05em; display: block;">Consejo para tu Entrenamiento</span>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 3px 0 0 0; line-height: 1.35;" id="weatherModalAdvice">
+              Cargando sugerencia...
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-secondary btn-block" onclick="Weather.forceRefresh()" style="font-weight: 700;">
+          🔄 Actualizar Ubicación & Tiempo
+        </button>
       </div>
     </div>
   </div>
@@ -3188,6 +3414,8 @@
   <script src="js/onboarding.js?v=1"></script>
   <script src="js/exercises-db.js?v=2"></script>
   <script src="js/storage.js?v=2"></script>
+  <script src="js/food-parser.js?v=1"></script>
+  <script src="js/weather.js?v=1"></script>
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/nutrition.js?v=2"></script>
   <script src="js/gym.js?v=2"></script>

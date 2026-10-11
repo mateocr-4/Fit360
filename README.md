@@ -10,13 +10,17 @@
 - 🎯 **Onboarding Wizard Guiado** — Asistente inicial paso a paso para captura de biometría, cálculo automático de gasto calórico diario (TDEE) y reparto óptimo de macronutrientes mediante la fórmula de **Mifflin-St Jeor**.
 - 📶 **Báscula Inteligente Bluetooth (BLE)** — Conexión inalámbrica nativa con básculas inteligentes (Renpho, QN-Scale, Yolanda y perfiles estándar Bluetooth SIG 0x181D) mediante `@capacitor-community/bluetooth-le`. Captura de peso en vivo y cálculo de porcentaje de grasa por bioimpedancia (BIA).
 - 🍽️ **Nutrición & Macros** — Registro de 5 comidas diarias (Desayuno, Almuerzo, Merienda, Cena, Snacks) con catálogo integrado de alimentos y escalado dinámico por gramaje.
+- ⚡ **Registro Ultrarrápido de Comidas (F1)** — Historial de alimentos recientes (LRU máx 30) en pestaña "✨ Rápido", favoritos sincronizados con estrella (`favorite_foods`), repetición en 1 toque (`↻`) y clonador íntegro de jornadas (`📅 Copiar Día`).
+- 📝 **Parser Determinista de Lenguaje Natural** — Motor de extracción léxica local y offline en español (`js/food-parser.js`) que procesa descripciones libres ("2 huevos y tostada con aguacate") y calcula raciones y macronutrientes precisos sin latencia ni APIs de IA de pago (10/10 tests unitarios).
+- 🌤️ **Barra Ambiental en Tiempo Real (Reloj & Clima)** — Header superior contextual con hora exacta al segundo, condición meteorológica en directo (WMO), temperatura y localidad mediante Open-Meteo API (`js/weather.js`), con soporte offline (TTL 30 min) y recomendaciones deportivas personalizadas.
 - 📷 **Escáner de Código de Barras** — Lector óptico 100% offline con cámara nativa (`html5-qrcode`) e identificación nutricional instantánea con Open Food Facts.
 - 🍳 **Constructor de Recetas** — Creación de platos personalizados con cálculo automático de totales y porciones.
 - 🏋️ **Gimnasio & Fuerza** — Catálogo de más de 50 ejercicios por grupo muscular, registro de series, pesos y repeticiones, temporizador de descanso flotante y organizador de rutinas.
 - 🏃 **Cardio** — Registro de cinta, elíptica y bicicleta estática con cálculo de gasto calórico por parámetros mecánicos.
 - ⌚ **Apple Fitness & HealthKit** — Sincronización bidireccional con Apple Salud: peso, grasa corporal, calorías activas, pasos y minutos de ejercicio.
+- 🧭 **Menú Lateral Categorizado** — Cajón de navegación lateral reestructurado en 5 categorías funcionales (Principal, Nutrición, Entrenamiento, Dispositivos & Salud, Comunidad & Ajustes) con divisores estéticos en línea punteada (`---- Categoría ----`) para acceso rápido y ordenado.
 - ☁️ **Motor Offline-First Resiliente** — Funciona al 100% sin conexión a internet. Los cambios se guardan localmente y se encolan en `syncQueue` (`js/supabase-client.js`) para subirse automáticamente a Supabase al recuperar la red.
-- 🔒 **Privacidad Total (Apple Guidelines)** — Manifiesto de privacidad oficial `PrivacyInfo.xcprivacy`, aislamiento estricto de datos de salud (Guideline 27.4) y cero dependencias de CDNs externos (CSP endurecida).
+- 🔒 **Privacidad Total (Apple Guidelines)** — Manifiesto de privacidad oficial `PrivacyInfo.xcprivacy`, aislamiento estricto de datos de salud (Guideline 27.4), declaración de geolocalización transparente y cero dependencias de CDNs externos (CSP endurecida).
 
 ---
 
@@ -59,6 +63,8 @@ npx cap open ios
 | **Autenticación Nativa** | `@capacitor-community/apple-sign-in@6.0.0` | Flujo nativo de Sign in with Apple según directrices de Apple. |
 | **Hardware BLE (IoT)** | `@capacitor-community/bluetooth-le@6.1.0` | Conexión GATT y decodificación de básculas Bluetooth (Renpho). |
 | **Salud y Métricas** | `@followathletics/capacitor-healthkit` | Intercambio de muestras con Apple HealthKit y Apple Fitness. |
+| **Meteorología & Geoposición**| Open-Meteo API + W3C Geolocation | Pronóstico del tiempo, temperatura y códigos WMO sin dependencias de API keys. |
+| **Procesador de Lenguaje** | Parser Léxico Determinista (`js/food-parser.js`) | Extracción offline de raciones, alimentos y cálculo de macros en español. |
 | **Escáner Óptico** | `html5-qrcode` (bundle local) | Escaneo de códigos de barras sin dependencias externas. |
 | **Gráficos & Analytics** | `chart.js` (bundle local) | Gráficos de progresión de cargas, radar muscular y peso. |
 
@@ -77,7 +83,7 @@ Fit360/
 ├── css/                        # Hojas de estilo modulares
 │   ├── variables.css           # Tokens de diseño, paleta dark luxury y tipografías
 │   ├── base.css                # Reset y estilos globales
-│   ├── layout.css              # Grid, headers y navegación
+│   ├── layout.css              # Grid, headers, ambient bar y navegación
 │   ├── components.css          # Botones, tarjetas, modales y pills
 │   ├── animations.css          # Animaciones y transiciones de interfaz
 │   ├── auth.css                # Vista y botones de autenticación (Apple HIG)
@@ -93,6 +99,9 @@ Fit360/
 │   ├── ble-scale.js            # Escáner BLE, GATT y decodificador de básculas
 │   ├── health-sync.js          # Sincronización con HealthKit y Apple Fitness
 │   ├── nutrition.js            # Lógica nutricional, comidas y recetas
+│   ├── food-parser.js          # Motor determinista de lenguaje natural para comidas
+│   ├── food-parser.test.js     # Tests unitarios para el parser de comidas (10/10)
+│   ├── weather.js              # Servicio de clima, reloj en vivo y consejos de entreno
 │   ├── gym.js                  # Entrenamientos, series y rutinas de fuerza
 │   ├── cardio.js               # Registro y cálculo de sesiones de cardio
 │   ├── analytics.js            # Métricas, gráficas y cálculo de 1RM
@@ -102,7 +111,7 @@ Fit360/
 │   └── schema.sql              # Esquema PostgreSQL: 9 tablas, RLS, triggers e índices
 ├── ios/                        # Proyecto nativo de Xcode (iOS)
 │   └── App/
-│       ├── App/Info.plist      # Descripciones de permisos de Salud, Bluetooth y ATT
+│       ├── App/Info.plist      # Descripciones de permisos de Salud, Bluetooth, GPS y ATT
 │       └── App/PrivacyInfo.xcprivacy # Manifiesto oficial de privacidad de Apple
 └── docs/                       # Documentación técnica exhaustiva
     ├── PRD.md                  # Especificación detallada de requerimientos

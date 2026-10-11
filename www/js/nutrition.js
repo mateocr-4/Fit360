@@ -142,22 +142,31 @@ const Nutrition = {
 
     let html = '';
     items.forEach(item => {
+      const isFav = Storage.isFavoriteFood ? Storage.isFavoriteFood(item.name) : false;
+      const safeName = typeof Security !== 'undefined' ? Security.escapeHTML(item.name) : item.name;
+
       html += `
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
           <div style="flex: 1; padding-right: 8px;">
-            <div style="font-size: 0.9rem; font-weight: 600; color: #fff;">${item.name}</div>
+            <div style="font-size: 0.9rem; font-weight: 600; color: #fff;">${safeName}</div>
             <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 8px; margin-top: 3px;">
               <span style="color: var(--color-protein);">P: ${item.protein}g</span>
               <span style="color: var(--color-carbs);">C: ${item.carbs}g</span>
               <span style="color: var(--color-fat);">G: ${item.fat}g</span>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
             <span style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--accent-cyan);">${item.kcal} kcal</span>
-            <button onclick="Nutrition.shareMealItem('${mealType}', '${item.id}')" style="color: var(--accent-lime); padding: 4px;" title="Compartir plato con amigos">
+            <button onclick="Nutrition.toggleFavoriteItem('${mealType}', '${item.id}')" style="color: ${isFav ? '#ffd700' : 'rgba(255,255,255,0.25)'}; padding: 4px; font-size: 1rem; background: none; border: none; cursor: pointer;" title="${isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}">
+              ${isFav ? '★' : '☆'}
+            </button>
+            <button onclick="Nutrition.repeatMealItem('${mealType}', '${item.id}')" style="color: var(--accent-cyan); padding: 4px; font-size: 1.1rem; background: none; border: none; cursor: pointer; line-height: 1;" title="Repetir este alimento en ${mealType}">
+              ↻
+            </button>
+            <button onclick="Nutrition.shareMealItem('${mealType}', '${item.id}')" style="color: var(--accent-lime); padding: 4px; background: none; border: none; cursor: pointer;" title="Compartir plato con amigos">
               📤
             </button>
-            <button onclick="Nutrition.deleteFood('${mealType}', '${item.id}')" style="color: var(--text-dim); padding: 4px;" title="Eliminar">
+            <button onclick="Nutrition.deleteFood('${mealType}', '${item.id}')" style="color: var(--text-dim); padding: 4px; background: none; border: none; cursor: pointer;" title="Eliminar">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
           </div>
@@ -168,7 +177,43 @@ const Nutrition = {
     container.innerHTML = html;
   },
 
-  foodModalMode: 'alimento',
+  repeatMealItem(mealType, foodId) {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const items = dayData.nutrition ? (dayData.nutrition[mealType] || []) : [];
+    const item = items.find(i => i.id === foodId);
+    if (!item) return;
+
+    Storage.addFoodItem(activeDate, mealType, {
+      name: item.name,
+      kcal: item.kcal,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat
+    });
+
+    this.render();
+    if (window.Dashboard) Dashboard.render();
+    App.showToast(`↻ Repetido: ${item.name} (+${item.kcal} kcal)`, 'success');
+  },
+
+  toggleFavoriteItem(mealType, foodId) {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const dayData = Storage.getDayData(activeDate);
+    const items = dayData.nutrition ? (dayData.nutrition[mealType] || []) : [];
+    const item = items.find(i => i.id === foodId);
+    if (!item) return;
+
+    const res = Storage.toggleFavoriteFood(item);
+    this.render();
+    if (res.isFavorite) {
+      App.showToast(`★ Guardado en favoritos: ${item.name}`, 'success');
+    } else {
+      App.showToast(`☆ Quitado de favoritos: ${item.name}`, 'info');
+    }
+  },
+
+  foodModalMode: 'rapido',
   foodModalRecipeMatchOnly: true,
 
   openAddModal(mealType = 'desayuno') {
@@ -187,18 +232,21 @@ const Nutrition = {
       mealTitle.innerText = titles[mealType] || 'Comida';
     }
 
-    // Switch to food mode by default
-    this.switchFoodModalMode('alimento');
-
-    // Render preset chips
-    this.renderPresetsList();
+    // Por defecto modo Rápido (Recientes + Favoritos + Texto Libre en 1 toque)
+    this.switchFoodModalMode('rapido');
 
     // Reset inputs
-    document.getElementById('foodNameInput').value = '';
-    document.getElementById('foodKcalInput').value = '';
-    document.getElementById('foodProteinInput').value = '';
-    document.getElementById('foodCarbsInput').value = '';
-    document.getElementById('foodFatInput').value = '';
+    this.clearFreeTextInput();
+    const foodNameInput = document.getElementById('foodNameInput');
+    if (foodNameInput) foodNameInput.value = '';
+    const kcalInput = document.getElementById('foodKcalInput');
+    if (kcalInput) kcalInput.value = '';
+    const pInput = document.getElementById('foodProteinInput');
+    if (pInput) pInput.value = '';
+    const cInput = document.getElementById('foodCarbsInput');
+    if (cInput) cInput.value = '';
+    const fInput = document.getElementById('foodFatInput');
+    if (fInput) fInput.value = '';
     const gramsInput = document.getElementById('foodGramsInput');
     if (gramsInput) gramsInput.value = '100';
 
@@ -207,28 +255,36 @@ const Nutrition = {
 
   switchFoodModalMode(mode) {
     this.foodModalMode = mode;
+    const tabRapido = document.getElementById('foodModalTabRapido');
     const tabAlimento = document.getElementById('foodModalTabAlimento');
     const tabReceta = document.getElementById('foodModalTabReceta');
+    const contentRapido = document.getElementById('foodModalContentRapido');
     const contentAlimento = document.getElementById('foodModalContentAlimento');
     const contentReceta = document.getElementById('foodModalContentReceta');
 
-    if (tabAlimento && tabReceta && contentAlimento && contentReceta) {
-      if (mode === 'alimento') {
-        tabAlimento.classList.add('active');
-        tabAlimento.style.opacity = '1';
-        tabReceta.classList.remove('active');
-        tabReceta.style.opacity = '0.7';
-        contentAlimento.style.display = 'block';
-        contentReceta.style.display = 'none';
-      } else {
-        tabReceta.classList.add('active');
-        tabReceta.style.opacity = '1';
-        tabAlimento.classList.remove('active');
-        tabAlimento.style.opacity = '0.7';
-        contentAlimento.style.display = 'none';
-        contentReceta.style.display = 'block';
-        this.renderFoodModalRecipes();
+    [tabRapido, tabAlimento, tabReceta].forEach(t => {
+      if (t) {
+        t.classList.remove('active');
+        t.style.opacity = '0.7';
       }
+    });
+    [contentRapido, contentAlimento, contentReceta].forEach(c => {
+      if (c) c.style.display = 'none';
+    });
+
+    if (mode === 'rapido') {
+      if (tabRapido) { tabRapido.classList.add('active'); tabRapido.style.opacity = '1'; }
+      if (contentRapido) contentRapido.style.display = 'block';
+      this.renderQuickFavorites();
+      this.renderQuickRecents();
+    } else if (mode === 'alimento') {
+      if (tabAlimento) { tabAlimento.classList.add('active'); tabAlimento.style.opacity = '1'; }
+      if (contentAlimento) contentAlimento.style.display = 'block';
+      this.renderPresetsList();
+    } else if (mode === 'receta') {
+      if (tabReceta) { tabReceta.classList.add('active'); tabReceta.style.opacity = '1'; }
+      if (contentReceta) contentReceta.style.display = 'block';
+      this.renderFoodModalRecipes();
     }
   },
 
@@ -393,6 +449,377 @@ const Nutrition = {
     this.render();
     if (window.Dashboard) Dashboard.render();
     App.showToast('Alimento eliminado', 'info');
+  },
+
+  // --- SUB-FEATURE: RECIENTES RÁPIDOS (1 TOQUE) ---
+  renderQuickRecents() {
+    const container = document.getElementById('quickRecentsList');
+    if (!container) return;
+
+    const recents = Storage.getRecentFoods ? Storage.getRecentFoods() : [];
+    if (recents.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 12px; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+          No hay alimentos recientes aún. Se guardarán automáticamente al registrar tus comidas.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = recents.slice(0, 15).map(item => {
+      const safeName = typeof Security !== 'undefined' ? Security.escapeHTML(item.name) : item.name;
+      const jsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
+      return `
+        <div class="card" style="padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; transition: background 0.15s;"
+          onclick="Nutrition.addQuickFoodItem(${jsonStr})">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.84rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${safeName}
+            </div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); display: flex; gap: 6px; margin-top: 2px;">
+              <span style="color: var(--color-protein);">P: ${item.protein}g</span> · 
+              <span style="color: var(--color-carbs);">C: ${item.carbs}g</span> · 
+              <span style="color: var(--color-fat);">G: ${item.fat}g</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--accent-cyan);">${item.kcal} kcal</span>
+            <span class="pill pill-cyan" style="font-size: 0.68rem; padding: 2px 7px;">+ Añadir</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  // --- SUB-FEATURE: FAVORITOS RÁPIDOS (1 TOQUE) ---
+  renderQuickFavorites() {
+    const container = document.getElementById('quickFavoritesList');
+    const badge = document.getElementById('favFoodsCountBadge');
+    if (!container) return;
+
+    const favs = Storage.getFavoriteFoods ? Storage.getFavoriteFoods() : [];
+    if (badge) badge.innerText = `${favs.length} guardados`;
+
+    if (favs.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 10px; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+          Toca la estrella ★ en cualquier plato de tu día para tenerlo a mano aquí.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = favs.map(item => {
+      const safeName = typeof Security !== 'undefined' ? Security.escapeHTML(item.name) : item.name;
+      const jsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
+      return `
+        <div class="card" style="padding: 8px 10px; background: rgba(255, 215, 0, 0.04); border: 1px solid rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; transition: background 0.15s;"
+          onclick="Nutrition.addQuickFoodItem(${jsonStr})">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.84rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ★ ${safeName}
+            </div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); display: flex; gap: 6px; margin-top: 2px;">
+              <span style="color: var(--color-protein);">P: ${item.protein}g</span> · 
+              <span style="color: var(--color-carbs);">C: ${item.carbs}g</span> · 
+              <span style="color: var(--color-fat);">G: ${item.fat}g</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: #ffd700;">${item.kcal} kcal</span>
+            <span class="pill pill-lime" style="font-size: 0.68rem; padding: 2px 7px;">+ Añadir</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  addQuickFoodItem(foodItem) {
+    if (!foodItem || !foodItem.name) return;
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+
+    Storage.addFoodItem(activeDate, this.currentMealType, {
+      name: foodItem.name,
+      kcal: Number(foodItem.kcal) || 0,
+      protein: Number(foodItem.protein) || 0,
+      carbs: Number(foodItem.carbs) || 0,
+      fat: Number(foodItem.fat) || 0
+    });
+
+    App.closeModal('foodModal');
+    App.showToast(`+ Añadido a ${this.currentMealType}: ${foodItem.name} (${foodItem.kcal} kcal)`, 'success');
+    this.render();
+    if (window.Dashboard) Dashboard.render();
+  },
+
+  clearRecents() {
+    if (confirm('¿Vaciar la lista de alimentos recientes?')) {
+      if (Storage.clearRecentFoods) Storage.clearRecentFoods();
+      this.renderQuickRecents();
+      App.showToast('Historial de recientes vaciado', 'info');
+    }
+  },
+
+  // --- SUB-FEATURE: PARSER DE TEXTO LIBRE (DETERMINISTA OFFLINE) ---
+  pendingParsedFoods: [],
+
+  parseFreeText() {
+    const input = document.getElementById('foodFreeTextInput');
+    const text = input ? input.value.trim() : '';
+    const container = document.getElementById('foodParsedResultsContainer');
+    const summaryBadge = document.getElementById('foodParsedSummaryBadge');
+
+    if (!text) {
+      App.showToast('Escribe algo para interpretar (ej: 2 huevos y tostada)', 'info');
+      return;
+    }
+
+    if (!window.FoodParser) {
+      App.showToast('El motor de análisis no está disponible', 'error');
+      return;
+    }
+
+    const result = window.FoodParser.parse(text);
+    if (!result || !result.items || result.items.length === 0) {
+      App.showToast('No se detectaron alimentos en el texto ingresado', 'error');
+      if (container) container.style.display = 'none';
+      return;
+    }
+
+    this.pendingParsedFoods = result.items;
+    this.renderParsedItemsList();
+
+    if (summaryBadge) {
+      summaryBadge.innerText = `${result.totalKcal} kcal (P:${result.totalProtein}g · C:${result.totalCarbs}g · G:${result.totalFat}g)`;
+    }
+    if (container) {
+      container.style.display = 'block';
+    }
+  },
+
+  renderParsedItemsList() {
+    const listEl = document.getElementById('foodParsedItemsList');
+    const summaryBadge = document.getElementById('foodParsedSummaryBadge');
+    if (!listEl) return;
+
+    if (!this.pendingParsedFoods || this.pendingParsedFoods.length === 0) {
+      const container = document.getElementById('foodParsedResultsContainer');
+      if (container) container.style.display = 'none';
+      return;
+    }
+
+    let totalKcal = 0, totalP = 0, totalC = 0, totalG = 0;
+
+    listEl.innerHTML = this.pendingParsedFoods.map((item, index) => {
+      totalKcal += Number(item.kcal) || 0;
+      totalP += Number(item.protein) || 0;
+      totalC += Number(item.carbs) || 0;
+      totalG += Number(item.fat) || 0;
+      const safeName = typeof Security !== 'undefined' ? Security.escapeHTML(item.name) : item.name;
+
+      return `
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid ${item.unmatched ? 'rgba(255,100,100,0.3)' : 'rgba(0,242,254,0.2)'}; border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <input type="text" class="form-control" value="${safeName}" 
+              onchange="Nutrition.updateParsedItem(${index}, 'name', this.value)"
+              style="padding: 4px 6px; font-size: 0.8rem; font-weight: 600; flex: 1; min-width: 0;">
+            <button type="button" onclick="Nutrition.removeParsedItem(${index})" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 2px 6px; font-size: 0.9rem;" title="Eliminar este alimento">✕</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem;">
+            <div style="display: flex; align-items: center; gap: 3px;">
+              <span style="color: var(--text-muted);">Gramos:</span>
+              <input type="number" value="${item.grams}" 
+                onchange="Nutrition.updateParsedItemGrams(${index}, this.value)"
+                style="width: 55px; padding: 2px 4px; font-size: 0.75rem; text-align: center; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: #fff;">
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 6px; font-weight: 600;">
+              <span style="color: var(--accent-cyan);">${item.kcal} kcal</span>
+              <span style="color: var(--color-protein);">P:${item.protein}g</span>
+              <span style="color: var(--color-carbs);">C:${item.carbs}g</span>
+              <span style="color: var(--color-fat);">G:${item.fat}g</span>
+            </div>
+          </div>
+          ${item.unmatched ? `<div style="font-size: 0.65rem; color: #ff8888;">⚠️ No encontrado en catálogo directo; edita gramos y macros si lo deseas.</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    if (summaryBadge) {
+      summaryBadge.innerText = `${totalKcal} kcal (P:${Math.round(totalP*10)/10}g · C:${Math.round(totalC*10)/10}g · G:${Math.round(totalG*10)/10}g)`;
+    }
+
+    const btnConfirm = document.getElementById('btnConfirmParsedFoods');
+    if (btnConfirm) {
+      btnConfirm.innerText = `+ Registrar ${this.pendingParsedFoods.length} alimento${this.pendingParsedFoods.length > 1 ? 's' : ''} en ${this.currentMealType}`;
+    }
+  },
+
+  updateParsedItem(index, key, value) {
+    if (this.pendingParsedFoods[index]) {
+      this.pendingParsedFoods[index][key] = value;
+    }
+  },
+
+  updateParsedItemGrams(index, newGrams) {
+    const item = this.pendingParsedFoods[index];
+    if (!item) return;
+
+    const g = Number(newGrams) || 100;
+    const oldG = item.grams || 100;
+    const factor = oldG > 0 ? (g / oldG) : 1;
+
+    item.grams = g;
+    item.kcal = Math.round(item.kcal * factor);
+    item.protein = Math.round(item.protein * factor * 10) / 10;
+    item.carbs = Math.round(item.carbs * factor * 10) / 10;
+    item.fat = Math.round(item.fat * factor * 10) / 10;
+    if (item.baseName) {
+      item.name = `${item.baseName} (${g}g)`;
+    }
+
+    this.renderParsedItemsList();
+  },
+
+  removeParsedItem(index) {
+    this.pendingParsedFoods.splice(index, 1);
+    this.renderParsedItemsList();
+  },
+
+  confirmParsedFoods() {
+    if (!this.pendingParsedFoods || this.pendingParsedFoods.length === 0) return;
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+
+    this.pendingParsedFoods.forEach(food => {
+      Storage.addFoodItem(activeDate, this.currentMealType, {
+        name: food.name,
+        kcal: Number(food.kcal) || 0,
+        protein: Number(food.protein) || 0,
+        carbs: Number(food.carbs) || 0,
+        fat: Number(food.fat) || 0
+      });
+    });
+
+    const count = this.pendingParsedFoods.length;
+    this.pendingParsedFoods = [];
+    this.clearFreeTextInput();
+    App.closeModal('foodModal');
+    App.showToast(`+ Registrados ${count} alimentos en ${this.currentMealType}`, 'success');
+    this.render();
+    if (window.Dashboard) Dashboard.render();
+  },
+
+  clearFreeTextInput() {
+    const input = document.getElementById('foodFreeTextInput');
+    if (input) input.value = '';
+    const container = document.getElementById('foodParsedResultsContainer');
+    if (container) container.style.display = 'none';
+    this.pendingParsedFoods = [];
+  },
+
+  // --- SUB-FEATURE: COPIAR DÍA COMPLETO ---
+  openCopyDayModal() {
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = Storage.formatDate(yesterday);
+
+    const input = document.getElementById('copyDayOriginDateInput');
+    if (input) {
+      input.value = yStr;
+      input.max = activeDate;
+    }
+
+    this.updateCopyDayPreview(yStr);
+    App.openModal('copyDayModal');
+  },
+
+  setCopyDayOrigin(type) {
+    const now = new Date();
+    let target = new Date();
+    if (type === 'yesterday') {
+      target.setDate(now.getDate() - 1);
+    } else if (type === 'last_week') {
+      target.setDate(now.getDate() - 7);
+    }
+    const dateStr = Storage.formatDate(target);
+    const input = document.getElementById('copyDayOriginDateInput');
+    if (input) {
+      input.value = dateStr;
+    }
+    this.updateCopyDayPreview(dateStr);
+  },
+
+  updateCopyDayPreview(originDateStr) {
+    const previewKcal = document.getElementById('copyDayPreviewKcal');
+    const previewDetails = document.getElementById('copyDayPreviewDetails');
+    if (!previewDetails) return;
+
+    if (!originDateStr) {
+      if (previewKcal) previewKcal.innerText = '0 kcal';
+      previewDetails.innerHTML = '<div>Selecciona una fecha válida</div>';
+      return;
+    }
+
+    const dayData = Storage.getDayData(originDateStr);
+    const totals = Storage.calculateNutritionTotals(dayData);
+    if (previewKcal) previewKcal.innerText = `${totals.kcal} kcal`;
+
+    const mealLabels = {
+      desayuno: '☕ Desayuno',
+      almuerzo: '🍽️ Almuerzo',
+      merienda: '🍎 Merienda',
+      cena: '🌙 Cena',
+      snacks: '🥜 Snacks'
+    };
+
+    const mealTypes = ['desayuno', 'almuerzo', 'merienda', 'cena', 'snacks'];
+    let totalItems = 0;
+    let html = '';
+
+    mealTypes.forEach(m => {
+      const items = (dayData.nutrition && dayData.nutrition[m]) ? dayData.nutrition[m] : [];
+      totalItems += items.length;
+      if (items.length > 0) {
+        const itemNames = items.map(i => typeof Security !== 'undefined' ? Security.escapeHTML(i.name) : i.name);
+        html += `<div><strong>${mealLabels[m]}:</strong> ${items.length} alimentos (${itemNames.slice(0, 2).join(', ')}${items.length > 2 ? '...' : ''})</div>`;
+      }
+    });
+
+    if (totalItems === 0) {
+      previewDetails.innerHTML = '<div style="color: var(--text-dim);">No hay registros de comidas en esa fecha.</div>';
+    } else {
+      previewDetails.innerHTML = html;
+    }
+  },
+
+  confirmCopyDay() {
+    const originInput = document.getElementById('copyDayOriginDateInput');
+    const originDate = originInput ? originInput.value : '';
+    const activeDate = window.App ? window.App.currentDate : Storage.formatDate();
+
+    if (!originDate) {
+      App.showToast('Selecciona una fecha de origen', 'error');
+      return;
+    }
+
+    if (originDate === activeDate) {
+      App.showToast('No puedes copiar del mismo día seleccionado', 'error');
+      return;
+    }
+
+    const mode = (document.querySelector('input[name="copyDayMode"]:checked')?.value) || 'merge';
+    const isMerge = (mode === 'merge');
+
+    const result = Storage.copyDayNutrition(originDate, activeDate, isMerge);
+    if (!result.success || result.count === 0) {
+      App.showToast('No había alimentos que copiar en el día origen', 'info');
+      return;
+    }
+
+    App.closeModal('copyDayModal');
+    App.showToast(`✅ Copiados ${result.count} alimentos de ${originDate}`, 'success');
+    this.render();
+    if (window.Dashboard) Dashboard.render();
   },
 
   // Apple Fitness Sync Modal

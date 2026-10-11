@@ -6,6 +6,7 @@ var Storage = {
     SETTINGS: 'fit360_settings',
     DATA: 'fit360_daily_data',
     FAVORITES: 'fit360_favorites',
+    RECENT_FOODS: 'fit360_recent_foods',
     MUSCLE_GROUPS: 'fit360_muscle_groups',
     CUSTOM_EXERCISES: 'fit360_custom_exercises',
     WEIGHT_LOGS: 'fit360_weight_logs',
@@ -91,6 +92,14 @@ var Storage = {
 
     if (!localStorage.getItem(this.KEYS.WEIGHT_LOGS)) {
       localStorage.setItem(this.KEYS.WEIGHT_LOGS, JSON.stringify([]));
+    }
+
+    if (!localStorage.getItem(this.KEYS.RECENT_FOODS)) {
+      localStorage.setItem(this.KEYS.RECENT_FOODS, JSON.stringify([]));
+    }
+
+    if (!localStorage.getItem(this.KEYS.FAVORITES)) {
+      localStorage.setItem(this.KEYS.FAVORITES, JSON.stringify([]));
     }
   },
 
@@ -234,15 +243,37 @@ var Storage = {
     this.saveAllDailyData(all);
   },
 
+  // Helper: Generador de UUID v4 seguro para compatibilidad con Supabase
+  generateUUID() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      try {
+        return crypto.randomUUID();
+      } catch (e) {}
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  },
+
   // --- MÉTODOS DE NUTRICIÓN ---
   addFoodItem(dateStr, mealType, foodItem) {
     const day = this.getDayData(dateStr);
     if (!day.nutrition[mealType]) {
       day.nutrition[mealType] = [];
     }
-    foodItem.id = 'food_' + Date.now();
+    foodItem.id = foodItem.id || ('food_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
     day.nutrition[mealType].push(foodItem);
     this.saveDayData(dateStr, day);
+
+    // Registrar automáticamente en historial de recientes (LRU máx 30)
+    try {
+      this.addRecentFood(foodItem);
+    } catch (e) {
+      console.warn('[Storage] Error al registrar alimento reciente:', e);
+    }
+
     return foodItem;
   },
 
@@ -252,6 +283,195 @@ var Storage = {
       day.nutrition[mealType] = day.nutrition[mealType].filter(item => item.id !== foodId);
       this.saveDayData(dateStr, day);
     }
+  },
+
+  // --- MÉTODOS DE ALIMENTOS RECIENTES (LRU máx 30) ---
+  getRecentFoods() {
+    try {
+      const data = localStorage.getItem(this.KEYS.RECENT_FOODS);
+      const list = data ? JSON.parse(data) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  addRecentFood(foodItem) {
+    if (!foodItem || !foodItem.name) return null;
+    const cleanName = String(foodItem.name).trim();
+    if (!cleanName) return null;
+
+    const list = this.getRecentFoods();
+    const existingIdx = list.findIndex(item => (item.name || '').toLowerCase() === cleanName.toLowerCase());
+    let entry;
+
+    if (existingIdx >= 0) {
+      entry = list[existingIdx];
+      entry.name = cleanName;
+      entry.kcal = Number(foodItem.kcal) || 0;
+      entry.protein = Number(foodItem.protein) || 0;
+      entry.carbs = Number(foodItem.carbs) || 0;
+      entry.fat = Number(foodItem.fat) || 0;
+      entry.grams = Number(foodItem.grams) || entry.grams || 100;
+      entry.usageCount = (entry.usageCount || 1) + 1;
+      entry.usedAt = new Date().toISOString();
+      // Mover al inicio (LRU)
+      list.splice(existingIdx, 1);
+      list.unshift(entry);
+    } else {
+      entry = {
+        id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: cleanName,
+        kcal: Number(foodItem.kcal) || 0,
+        protein: Number(foodItem.protein) || 0,
+        carbs: Number(foodItem.carbs) || 0,
+        fat: Number(foodItem.fat) || 0,
+        grams: Number(foodItem.grams) || 100,
+        source: foodItem.source || 'manual',
+        usedAt: new Date().toISOString(),
+        usageCount: 1
+      };
+      list.unshift(entry);
+    }
+
+    // Mantener máx 30 items
+    if (list.length > 30) {
+      list.length = 30;
+    }
+
+    try {
+      localStorage.setItem(this.KEYS.RECENT_FOODS, JSON.stringify(list));
+    } catch (e) {
+      console.warn('[Storage] Error guardando recientes:', e);
+    }
+    return entry;
+  },
+
+  clearRecentFoods() {
+    try {
+      localStorage.setItem(this.KEYS.RECENT_FOODS, JSON.stringify([]));
+    } catch (e) {}
+  },
+
+  // --- MÉTODOS DE ALIMENTOS FAVORITOS (localStorage + Supabase SyncQueue) ---
+  getFavoriteFoods() {
+    try {
+      const data = localStorage.getItem(this.KEYS.FAVORITES);
+      const list = data ? JSON.parse(data) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveFavoriteFoods(list) {
+    try {
+      localStorage.setItem(this.KEYS.FAVORITES, JSON.stringify(list || []));
+    } catch (e) {
+      console.warn('[Storage] Error guardando favoritos:', e);
+    }
+  },
+
+  isFavoriteFood(foodName) {
+    if (!foodName) return false;
+    const clean = String(foodName).trim().toLowerCase();
+    const list = this.getFavoriteFoods();
+    return list.some(f => (f.name || '').trim().toLowerCase() === clean);
+  },
+
+  toggleFavoriteFood(foodItem) {
+    if (!foodItem || !foodItem.name) return { isFavorite: false, item: null };
+    const cleanName = String(foodItem.name).trim();
+    const list = this.getFavoriteFoods();
+    const existingIdx = list.findIndex(f => 
+      (foodItem.id && f.id === foodItem.id) || 
+      ((f.name || '').trim().toLowerCase() === cleanName.toLowerCase())
+    );
+
+    if (existingIdx >= 0) {
+      // Eliminar de favoritos local
+      const removed = list.splice(existingIdx, 1)[0];
+      this.saveFavoriteFoods(list);
+
+      // Sincronizar DELETE con Supabase vía SyncQueue si tiene ID válido
+      if (window.SupabaseClient && typeof window.SupabaseClient.enqueue === 'function' && removed.id) {
+        window.SupabaseClient.enqueue('DELETE', 'favorite_foods', { id: removed.id });
+      }
+
+      return { isFavorite: false, item: removed };
+    } else {
+      // UUID válido para clave primaria Supabase
+      const favId = (foodItem.id && foodItem.id.length === 36 && foodItem.id.includes('-')) 
+        ? foodItem.id 
+        : this.generateUUID();
+
+      const fav = {
+        id: favId,
+        name: cleanName,
+        kcal: Number(foodItem.kcal) || 0,
+        protein: Number(foodItem.protein) || 0,
+        carbs: Number(foodItem.carbs) || 0,
+        fat: Number(foodItem.fat) || 0,
+        grams: Number(foodItem.grams) || 100,
+        createdAt: new Date().toISOString()
+      };
+
+      list.unshift(fav);
+      this.saveFavoriteFoods(list);
+
+      // Sincronizar UPSERT con Supabase vía SyncQueue
+      if (window.SupabaseClient && typeof window.SupabaseClient.enqueue === 'function') {
+        window.SupabaseClient.enqueue('UPSERT', 'favorite_foods', {
+          id: fav.id,
+          food_data: {
+            name: fav.name,
+            kcal: fav.kcal,
+            protein: fav.protein,
+            carbs: fav.carbs,
+            fat: fav.fat,
+            grams: fav.grams
+          }
+        });
+      }
+
+      return { isFavorite: true, item: fav };
+    }
+  },
+
+  // --- COPIAR DÍA / REPETIR NUTRICIÓN ---
+  copyDayNutrition(fromDateStr, toDateStr, merge = true) {
+    if (!fromDateStr || !toDateStr) return { success: false, count: 0 };
+    const fromDay = this.getDayData(fromDateStr);
+    const toDay = this.getDayData(toDateStr);
+
+    if (!fromDay.nutrition) {
+      return { success: false, count: 0 };
+    }
+
+    const mealTypes = ['desayuno', 'almuerzo', 'merienda', 'cena', 'snacks'];
+    let count = 0;
+
+    if (!toDay.nutrition) {
+      toDay.nutrition = { desayuno: [], almuerzo: [], merienda: [], cena: [], snacks: [] };
+    }
+
+    mealTypes.forEach(meal => {
+      const fromItems = fromDay.nutrition[meal] || [];
+      const cloned = fromItems.map(item => ({
+        ...item,
+        id: 'food_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+      }));
+
+      if (merge) {
+        toDay.nutrition[meal] = (toDay.nutrition[meal] || []).concat(cloned);
+      } else {
+        toDay.nutrition[meal] = cloned;
+      }
+      count += cloned.length;
+    });
+
+    this.saveDayData(toDateStr, toDay);
+    return { success: true, count };
   },
 
   // --- MÉTODOS DE APPLE FITNESS ---

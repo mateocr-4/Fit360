@@ -2,7 +2,7 @@
 
 > **Proyecto:** Fit360 (Fitness & Nutrition Tracker)  
 > **Versión objetivo:** 1.1.0 (Producción / App Store)  
-> **Fecha de actualización:** 26 de septiembre de 2026  
+> **Fecha de actualización:** 11 de octubre de 2026  
 > **Objetivo primordial:** Eliminar dependencias no oficiales (Sideloadly), integrar backend con Supabase (Auth + BBDD en la nube), configurar monetización con AdMob, cumplir con las directrices de Apple (App Store Review Guidelines) y publicar la aplicación en iOS App Store.
 
 ---
@@ -12,7 +12,7 @@
 | Fase | Descripción | Prioridad | Estado |
 |:---:|---|:---:|:---:|
 | **1** | [Cuenta y Certificados de Apple](#fase-1--cuenta-y-certificados-de-apple-bloqueante) | 🔴 Crítica | `0/5` |
-| **2** | [Configuración de Xcode y Entitlements](#fase-2--configuración-del-proyecto-xcode-y-entitlements) | 🔴 Crítica | `7/9` |
+| **2** | [Configuración de Xcode y Entitlements](#fase-2--configuración-del-proyecto-xcode-y-entitlements) | 🔴 Crítica | `8/10` |
 | **3** | [Limpieza de Código: Eliminación de Sideloadly e IPs](#fase-3--limpieza-de-código-eliminación-de-sideloadly-e-ips) | 🔴 Crítica | `7/8` |
 | **4** | [Supabase — Backend, Autenticación y Base de Datos](#fase-4--supabase--backend-autenticación-y-base-de-datos) | 🔴 Crítica | `10/10` ✅ |
 | **5** | [Monetización: AdMob y App Tracking Transparency](#fase-5--monetización-admob-y-app-tracking-transparency) | 🟡 Alta | `7/8` ✅ |
@@ -23,6 +23,9 @@
 | **10** | [Automatización CI/CD para App Store & TestFlight](#fase-10--automatización-cicd-para-app-store--testflight) | 🟡 Alta | `0/4` |
 | **11** | [Envío a Revisión y Gestión de App Review](#fase-11--envío-a-revisión-y-gestión-de-app-review) | 🔴 Crítica | `0/4` |
 | **12** | [Mejoras Técnicas Post-Lanzamiento](#fase-12--mejoras-técnicas-post-lanzamiento) | 🟢 Media | `0/5` |
+| **F1** | [Reducción de Fricción en Registro de Comidas](#fase-f1--reducción-de-fricción-en-registro-de-comidas-completada) | ⚡ Alta | `4/4` ✅ |
+| **AMB**| [Módulo Ambiental: Clima & Reloj en Tiempo Real](#módulo-ambiental--clima--reloj-en-tiempo-real-completada) | 🌤️ Alta | `7/7` ✅ |
+| **DRAWER**| [Navegación Lateral: Menú Categorizado por Secciones](#navegación-lateral--menú-categorizado-por-secciones-completada) | 🎨 Alta | `4/4` ✅ |
 
 ---
 
@@ -84,6 +87,7 @@
 - [x] **Permiso de Cámara (`NSCameraUsageDescription`):** Añadido a `Info.plist` con explicación clara para escaneo de códigos de barra.
 - [x] **Permisos de Salud (HealthKit):** Declaradas cadenas en español para lectura de actividad y sincronización.
 - [x] **Permiso de Tracking (ATT) para AdMob:** Añadido `NSUserTrackingUsageDescription` en `Info.plist`.
+- [x] **Permiso de Ubicación (`NSLocationWhenInUseUsageDescription`):** Añadido a `Info.plist` con explicación clara para consultar el tiempo meteorológico y temperatura local en tiempo real.
 - [x] **Idioma principal del Bundle:** Configurado `CFBundleDevelopmentRegion` a `es`.
 - [x] **Orientación bloqueada a Vertical (Portrait):** Restringido a `UIInterfaceOrientationPortrait`.
 
@@ -614,6 +618,34 @@ curl -s https://<project-id>.supabase.co/rest/v1/ -H "apikey: <anon-key>" | head
 │        Región: eu-west-1   │
 └────────────────────────────┘
 ```
+
+---
+
+## Fase F1 — Reducción de Fricción en Registro de Comidas (Completada)
+- [x] **Alimentos Recientes (LRU máx 30):** Historial automático persistido en `localStorage`, visible en tab "✨ Rápido", registro en 1 toque.
+- [x] **Favoritos Rápidos (★):** Activación de tabla `favorite_foods`, sincronización con Supabase vía SyncQueue (UPSERT/DELETE), botón de estrella en cada plato y acceso rápido en modal.
+- [x] **Repetición y Copia de Días:** Botón `↻` por cada alimento registrado, botón `📅 Copiar Día` con selector de origen (ayer / semana pasada), previsualización de macros y opción de fusionar/sobrescribir.
+- [x] **Parser Determinista de Texto Libre (`js/food-parser.js`):** Extracción offline de lenguaje natural en español ("2 huevos y tostada con aguacate", "200g de pollo"), cálculo de gramos naturales y macros escaladas, pantalla de confirmación editable, 10/10 tests unitarios pasando.
+
+---
+
+## Módulo Ambiental — Clima & Reloj en Tiempo Real (Completada)
+- [x] **Barra Superior Contextual (`.top-ambient-bar`):** Ubicada en la cabecera general (`.app-header`) bajo Safe Area, visible en toda la aplicación con estilo Dark Luxury y diseño responsive para pantallas compactas.
+- [x] **Reloj Digital Monospace:** Actualización en vivo al segundo en formato `HH:MM`, tipografía tabular sin salto visual.
+- [x] **Integración Open-Meteo REST API (`js/weather.js`):** Consulta directa sin API keys a `api.open-meteo.com/v1/forecast` para temperatura en °C y códigos meteorológicos WMO (0 a 99).
+- [x] **Traducción e Iconografía WMO:** Mapeo de códigos a condiciones reales (☀️ Soleado, ⛅ Intervalos nubosos, 🌧️ Lluvia, ❄️ Nieve, ⛈️ Tormenta).
+- [x] **Geolocalización & Geocodificación Inversa:** Geolocalización W3C con geocodificación ligera a través de BigDataCloud para extraer ciudad/localidad, con fallback automático sin conexión.
+- [x] **Caché Local Offline (TTL 30 min):** Persistencia en `localStorage` con validación de caducidad temporal para optimizar consumo de batería y datos móviles.
+- [x] **Modal Interactivo de Consejos Deportivos (`#weatherModal`):** Despliegue de recomendaciones de hidratación (altas temperaturas), calentamiento (bajas temperaturas) y preferencia de cardio indoor ante precipitaciones o mal tiempo.
+- [x] **Permisos iOS en Info.plist:** Declaración obligatoria de `NSLocationWhenInUseUsageDescription` cumpliendo las Apple App Store Review Guidelines.
+
+---
+
+## Navegación Lateral — Menú Categorizado por Secciones (Completada)
+- [x] **Agrupación Temática de 5 Bloques:** Organización de las 14 pantallas y utilidades en *Principal*, *Nutrición*, *Entrenamiento*, *Dispositivos & Salud* y *Comunidad & Ajustes*.
+- [x] **Divisores Horizontales Estilo Dash (`---- Categoría ----`):** Componente `.sidebar-category-header` con líneas punteadas (`border-bottom: 1px dashed`) a ambos lados del texto de la categoría.
+- [x] **Estilo y Legibilidad Dark Luxury:** Tipografía en mayúsculas con espaciado (`letter-spacing: 1.8px`) y contraste calibrado (`rgba(255, 255, 255, 0.58)`) sobre fondo Obsidian Void.
+- [x] **Integridad de Navegación y Eventos:** Todos los selectores `data-view`, badges y llamadas JavaScript preservadas con sincronización fluida hacia la vista solicitada.
 
 ---
 

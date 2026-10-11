@@ -57,6 +57,8 @@
 	<string>Fit360 requiere acceso a Bluetooth para detectar y sincronizar de forma inalámbrica las mediciones de tu báscula inteligente (como básculas Renpho o compatibles).</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Fit360 requiere acceso a Bluetooth para comunicarse con tu báscula inteligente y sincronizar pesajes automáticamente.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Fit360 consulta tu ubicación aproximada para mostrarte el tiempo meteorológico local en tiempo real y sugerencias de entrenamiento.</string>
 
 	<!-- Permiso de Publicidad ATT (App Tracking Transparency - Guideline 5.1.2) -->
 	<key>NSUserTrackingUsageDescription</key>

@@ -34,19 +34,104 @@
 
 /* App Header */
 .app-header {
-  height: calc(var(--header-height) + var(--safe-area-top));
-  padding-top: var(--safe-area-top);
+  min-height: calc(var(--header-height) + var(--safe-area-top));
+  padding-top: max(var(--safe-area-top), 6px);
   padding-left: var(--space-md);
   padding-right: var(--space-md);
+  padding-bottom: 6px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
   background: var(--glass-bg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
   border-bottom: 1px solid var(--glass-border);
   z-index: 100;
   flex-shrink: 0;
+}
+
+/* Ambient Top Status Bar (Hora, Tiempo, Temperatura) */
+.top-ambient-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1px 2px 2px 2px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.ambient-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ambient-clock {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ambient-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 242, 254, 0.06);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ambient-right:active, .ambient-right:hover {
+  background: rgba(0, 242, 254, 0.14);
+  border-color: var(--accent-cyan);
+  transform: scale(0.98);
+}
+
+.ambient-weather-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.ambient-weather-desc {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ambient-weather-temp {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.ambient-weather-loc {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+@media (max-width: 380px) {
+  .ambient-weather-desc {
+    display: none;
+  }
+}
+
+.app-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .header-left {
@@ -402,6 +487,41 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
+}
+
+/* Sidebar Category Dividers (---- Categoría ----) */
+.sidebar-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 6px 4px 6px;
+  margin-top: 6px;
+  list-style: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.sidebar-category-header:first-of-type {
+  margin-top: 0;
+  padding-top: 2px;
+}
+
+.sidebar-category-header .category-divider-line {
+  flex: 1;
+  height: 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+.sidebar-category-header .category-divider-text {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: rgba(255, 255, 255, 0.58);
+  white-space: nowrap;
+  padding: 0 6px;
+  font-family: var(--font-title);
 }
 
 .sidebar-link {

@@ -6,7 +6,7 @@
 > **Backend & Cloud:** Supabase (PostgreSQL 15 con Row Level Security)  
 > **Arquitectura:** Offline-First Híbrida con Sincronización Resiliente  
 > **Diseño de Interfaz:** Dark Luxury Aesthetic (OLED Obsidian, Glassmorphism, Micro-animaciones)  
-> **Fecha de Actualización:** 26 de septiembre de 2026  
+> **Fecha de Actualización:** 11 de octubre de 2026  
 > **Estado:** 🚀 Fase de Preparación para TestFlight y App Store Review  
 
 ---
@@ -29,7 +29,8 @@
 **Fit360** es una aplicación nativa para iOS de seguimiento integral de fitness, nutrición y salud biométrica, construida sobre una arquitectura **Offline-First**. Resuelve la frustración del usuario moderno frente a las suscripciones mensuales abusivas de las aplicaciones tradicionales y la pérdida de control sobre sus datos privados.
 
 Integra en una única experiencia:
-- Control de nutrición con cálculo metabólico **TDEE (Mifflin-St Jeor)** y escaneo de códigos de barra sin conexión.
+- Control de nutrición con cálculo metabólico **TDEE (Mifflin-St Jeor)**, escaneo de códigos de barra sin conexión y registro ultrarrápido con **reducción de fricción (F1)**: catálogo rápido de alimentos recientes (LRU máx 30), favoritos sincronizados con estrella (`favorite_foods`), duplicado inmediato de platos (`↻`), clonador de jornadas (`📅 Copiar Día`) y motor determinista de texto libre en lenguaje natural español (`js/food-parser.js`).
+- Barra ambiental contextual en la cabecera: reloj digital en tiempo real sincronizado al segundo, widget de clima y temperatura en vivo vía **Open-Meteo API** con recomendaciones deportivas adaptativas según el entorno exterior (`js/weather.js`).
 - Registro de fuerza (Gym) con cálculo de volumen, 1RM y temporizador de descanso háptico.
 - Registro de cardio y sincronización bidireccional con **Apple HealthKit**.
 - Captura inalámbrica de peso y grasa corporal mediante **Bluetooth Low Energy (BLE)** compatible con básculas inteligentes (Renpho, Xiaomi, QN-Scale, Yolanda).
@@ -76,12 +77,14 @@ Fit360 implementa un lenguaje visual denominado **Dark Luxury**, especialmente c
   │               │         │               │         │               │
   │ Obsidian Void │         │ Midnight Glass│         │ Electric Cyan │
   │ (Deep OLED)   │         │ (Surfaces)    │         │ (Primary Brand)│
+  │               │         │               │         │               │
   └───────────────┘         └───────────────┘         └───────────────┘
        #fa114f                   #00f59b                   #8b5cf6
   ┌───────────────┐         ┌───────────────┐         ┌───────────────┐
   │               │         │               │         │               │
   │ Apple Fitness │         │ Energy Mint   │         │ Hyper Violet  │
   │ (Move Ring)   │         │ (Nutrition)   │         │ (Strength)    │
+  │               │         │               │         │               │
   └───────────────┘         └───────────────┘         └───────────────┘
 ```
 
@@ -121,6 +124,17 @@ Fit360 implementa un lenguaje visual denominado **Dark Luxury**, especialmente c
 - **Títulos y Cifras (Display):** `'Outfit'`, sans-serif — Aporta personalidad deportiva moderna y números claros en el tacómetro de calorías.
 - **Cuerpo y Controles del Sistema (Body):** `-apple-system, BlinkMacSystemFont, 'SF Pro Text'`, sans-serif — Garantiza legibilidad nativa en iOS.
 
+### 3.3 Menú Lateral Desplegable y Separadores Temáticos
+
+El cajón de navegación lateral (Drawer) organiza la totalidad de vistas y utilidades del sistema en 5 bloques temáticos estructurados con separadores horizontales destacados (`.sidebar-category-header`):
+- **Principal:** Dashboard General y Progreso & Estadísticas.
+- **Nutrición:** Registro de Macros, Guía de Alimentos (115+ items) y Constructor de Recetas.
+- **Entrenamiento:** Gimnasio & Series y Cardio & Máquinas.
+- **Dispositivos & Salud:** Sincronización con Apple Fitness, Báscula Bluetooth BLE y Guía de Conexión.
+- **Comunidad & Ajustes:** Amigos & Rutinas, Metas del Perfil, Cuenta Cloud en Supabase e instalación PWA.
+
+Cada separador implementa líneas punteadas dinámicas (`border-bottom: 1px dashed rgba(255, 255, 255, 0.28)`) en ambos márgenes y títulos centrados en tipografía `'Outfit'` en mayúsculas con espaciado amplio (`letter-spacing: 1.8px`), asegurando ergonomía visual y navegación inmediata.
+
 ---
 
 ## 4. Arquitectura Técnica y Diagramas de Flujo
@@ -134,6 +148,7 @@ graph TD
         HK[Apple HealthKit SDK]
         ATT[App Tracking Transparency]
         AppleAuth[Sign in with Apple]
+        GeoLoc[Geolocalización GPS / W3C]
     end
 
     subgraph "Capacitor 6 Bridge Layer"
@@ -150,6 +165,9 @@ graph TD
         AuthMod["Módulo Auth (auth.js)"]
         OnbMod["Wizard Onboarding (onboarding.js)"]
         AdsMod["Motor Ads (ads.js)"]
+        NutriMod["Nutrición & Registro (nutrition.js)"]
+        FoodParser["Parser Determinista (food-parser.js)"]
+        WeatherMod["Servicio Meteorológico (weather.js)"]
         StorageEngine["Offline Engine (storage.js)"]
         SyncClient["Sync Queue Client (supabase-client.js)"]
     end
@@ -157,16 +175,22 @@ graph TD
     subgraph "Storage & Cloud Infrastructure"
         LocalStorage[("Local Cache Storage")]
         SupabaseCloud[("Supabase Cloud DB (PostgreSQL 15)")]
+        OpenMeteo["Open-Meteo & Reverse Geocoding API"]
     end
 
     Scale -->|GATT Broadcast| P_BLE --> BleMod
     HK <-->|Read / Write| P_HK <--> StorageEngine
     AppleAuth --> P_Auth --> AuthMod
     ATT --> P_Ads --> AdsMod
+    GeoLoc --> WeatherMod
 
     BleMod --> StorageEngine
     AuthMod --> SyncClient
     OnbMod --> StorageEngine
+    NutriMod --> StorageEngine
+    NutriMod <--> FoodParser
+    WeatherMod <-->|Fetch Clima / 30m TTL| OpenMeteo
+    WeatherMod --> App
 
     StorageEngine <--> LocalStorage
     StorageEngine -->|Encolar Mutaciones| SyncClient
@@ -276,6 +300,32 @@ El esquema relacional completo reside en [`supabase/schema.sql`](file:///c:/User
 - **Banner Adaptativo:** Posicionado en `BOTTOM_CENTER`, recalculando dinámicamente el layout mediante la clase CSS `.admob-banner-active` y la variable `--admob-banner-height` para no ocultar la navegación inferior.
 - **Intersticiales con Capping:** Limitados a un máximo de 1 anuncio cada 5 minutos, con persistencia del timestamp en `localStorage`.
 
+### 6.5 Registro Ultrarrápido de Comidas y Lenguaje Natural (Fase F1)
+- **Historial de Recientes (LRU máx 30):** Registro automático en memoria local (`Storage.addRecentFood`) accesible instantáneamente desde la pestaña "✨ Rápido", permitiendo re-registrar alimentos habituales en 1 toque sin navegar por el catálogo.
+- **Favoritos Sincronizados (★):** Activación y enlace con la tabla `favorite_foods` de Supabase PostgreSQL protegida por RLS. Alternador de estrella en cada alimento registrado y en el modal de búsqueda, encolando mutaciones `UPSERT`/`DELETE` en `syncQueue` para resiliencia offline.
+- **Duplicado Rápido de Alimentos (`↻`):** Botón de repetición inmediata por fila en el desglose de comidas, registrando la misma ración en la comida activa con un solo toque y micro-animación háptica.
+- **Clonador Integral de Días (`📅 Copiar Día`):** Modal avanzado con selector rápido de fechas de origen (Ayer, Hace 7 días o fecha personalizada), previsualización en vivo de macronutrientes totales a transferir, y selector modal de estrategia:
+  - *Sobrescribir:* Reemplaza las comidas del día de destino por las del día origen.
+  - *Fusionar:* Combina las comidas respetando los alimentos ya registrados.
+- **Motor Determinista de Lenguaje Natural (`js/food-parser.js`):**
+  - Procesador offline y local sin necesidad de modelos de lenguaje externos, APIs de pago ni conectividad a internet.
+  - Normalización ortográfica y tratamiento de tildes/plurales en español.
+  - Extracción de cantidades y equivalencias naturales: gramos, mililitros, unidades, piezas, rebanadas, lonchas, vasos y tazas.
+  - Coincidencia difusa de alimentos contra el catálogo interno (`FOOD_CATALOG`) y escalado proporcional de calorías, proteínas, carbohidratos y grasas.
+  - Pantalla modal de confirmación con tabla interactiva editable antes de confirmar el registro definitivo.
+  - Verificación formal: 10/10 pruebas unitarias superadas (`js/food-parser.test.js`).
+
+### 6.6 Barra Ambiental y Widget Meteorológico (`js/weather.js`)
+- **Cabecera Contextual en Tiempo Real (`.top-ambient-bar`):** Ubicada en la zona superior de la interfaz, justo debajo del Safe Area de iOS, con diseño Dark Luxury integrado.
+- **Reloj Dinámico Monospace:** Sincronizado cada segundo en formato `HH:MM` para control temporal durante sesiones de entrenamiento o ingestas.
+- **Meteo en Vivo (Open-Meteo API):** Consulta de temperatura en °C y códigos meteorológicos oficiales WMO (0 a 99) traducidos a iconografía descriptiva (☀️ Despejado, ⛅ Nubes y claros, 🌧️ Lluvia, ⛈️ Tormenta, ❄️ Nieve).
+- **Geocodificación Inversa:** Detección de la localidad/ciudad mediante la API de BigDataCloud o coordenadas W3C, con fallback graceful a ubicación predeterminada sin bloquear el arranque.
+- **Caché Offline y TTL:** Almacenamiento local del pronóstico con caducidad de 30 minutos para evitar consumo innecesario de batería y datos móviles.
+- **Modal de Recomendaciones Deportivas (`#weatherModal`):** Al tocar la píldora meteorológica se despliega un panel emergente con consejos inteligentes de rendimiento:
+  - *Calor (> 28°C):* Alertas de reposición de electrolitos, hidratación y evitar franjas de máxima radiación solar.
+  - *Frío (< 8°C):* Calentamiento articular prolongado y uso de ropa térmica multicapa.
+  - *Lluvia o Viento Fuerte:* Sugerencia automática de priorizar cardio en cinta/bicicleta estática indoor para evitar caídas o enfriamientos.
+
 ---
 
 ## 7. Matriz de Cumplimiento de Políticas Apple (Review Guidelines)
@@ -287,6 +337,7 @@ El esquema relacional completo reside en [`supabase/schema.sql`](file:///c:/User
 |---|---|---|:---:|
 | **27.4** | Health & HealthKit Isolation | **Blindaje Estanco:** Los datos de HealthKit jamás se comparten con AdMob, servidores de terceros ni analíticas publicitarias. | ✅ Aprobado |
 | **5.1.1** | Data Collection Purpose | Explicación en pantalla completa dentro del Onboarding previa a la invocación de permisos nativos. | ✅ Aprobado |
+| **5.1.1** | Geolocation Usage Disclosure | Declaración explícita `NSLocationWhenInUseUsageDescription` en `Info.plist` con propósito exclusivo para el widget meteorológico de cabecera. Sin seguimiento en segundo plano ni fines publicitarios. | ✅ Aprobado |
 | **5.1.2** | App Tracking Transparency | Invocación de `requestTrackingAuthorization()` previo a AdMob. Fallback inmediato a `npa: true`. | ✅ Aprobado |
 | **4.8** | Sign in with Apple | Implementado como opción principal de inicio de sesión social. | ✅ Aprobado |
 | **2.5.1** | Privacy Manifest | Archivo `PrivacyInfo.xcprivacy` configurado declarando las APIs de UserDefaults y Tracking. | ✅ Aprobado |
